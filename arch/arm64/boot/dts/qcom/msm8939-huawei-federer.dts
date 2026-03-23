@@ -174,12 +174,27 @@
 		};
 	};
 
+	headphones_switch: audio-switch {
+		compatible = "simple-audio-amplifier";
+		VCC-supply = <&speaker_vdd>;
+		enable-gpios = <&tlmm 1 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-0 = <&headphones_switch_default>;
+		pinctrl-1 = <&headphones_switch_sleep>;
+		pinctrl-names = "default","sleep";
+
+		sound-name-prefix = "Headphones Switch";
+	};
+
 	speaker_boost: regulator-speaker-boost {
 		compatible = "regulator-fixed";
 		regulator-name = "speaker-boost";
 		gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>; // Boost GPIO
 		enable-active-high;
-		regulator-always-on;	
+		
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&speaker_boost_default>;
+		pinctrl-1 = <&speaker_boost_sleep>;
 	};
 
 	speaker_vdd: regulator-speaker-vdd {
@@ -187,20 +202,21 @@
 		regulator-name = "speaker-vdd";
 		gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>; // VDD Switch
 		enable-active-high;
-		regulator-always-on;
+		pinctrl-0 = <&speaker_vdd_default>;
+		pinctrl-1 = <&speaker_vdd_sleep>;
+		pinctrl-names = "default","sleep";
 	};
 
 	speaker_amp: audio-amplifier {
 		compatible = "simple-audio-amplifier";
-		VCC-supply = <&speaker_boost>; 
-		vin-supply = <&speaker_vdd>;
-
+		VCC-supply = <&speaker_vdd>;
+		vin-supply = <&speaker_boost>;
 		enable-gpios = <&tlmm 3 GPIO_ACTIVE_HIGH>; // Enable GPIO
 		startup-delay-us = <200000>;
-		pinctrl-0 = <&speaker_switch_in_default>;
-		
-		//pinctrl-1 = <&speaker_switch_in_sleep>;
-		pinctrl-names = "default";//,"sleep";
+
+		pinctrl-0 = <&speaker_amp_default>;
+		pinctrl-1 = <&speaker_amp_sleep>;
+		pinctrl-names = "default","sleep";
 		
 		sound-name-prefix = "Speaker";
 	};
@@ -278,14 +294,16 @@
 		compatible = "rohm,bh1745";
 		reg = <0x38>;
 
-		interrupt-parent = <&tlmm>;
-		interrupts  = <113 IRQ_TYPE_EDGE_FALLING>;
+		/*interrupt-parent = <&tlmm>;
+		interrupts  = <113 IRQ_TYPE_EDGE_FALLING>;*/
+		interrupts-extended = <113 IRQ_TYPE_EDGE_FALLING>;
+		irq-gpios = <&tlmm 113 GPIO_ACTIVE_HIGH>;
 		vdd-supply = <&pm8916_l17>;
 		vio-supply = <&pm8916_l6>;
 
-		pinctrl-names = "default", "sleep";
+		pinctrl-names = "default";//, "sleep";
 		pinctrl-0 = <&light_irq_default>;
-		pinctrl-1 = <&light_irq_sleep>;
+		//pinctrl-1 = <&light_irq_sleep>;
 	};
 
 	flash-led-controller@63 {
@@ -355,6 +373,9 @@
 };
 
 &blsp_uart2 {
+	pinctrl-0 = <&blsp_uart2_console_default>;
+	pinctrl-1 = <&blsp_uart2_console_sleep>;
+	pinctrl-names = "default", "sleep";
 	status = "okay";
 };
 
@@ -600,19 +621,20 @@
 	widgets =
 		"Speaker", "Speaker",
 		"Headphone", "Headphones";
-
-	pin-switches = "Speaker";
+	pin-switches = "Speaker", "Headphones";
 	audio-routing =
-		"Speaker INL", "HPH_L",
-		"Speaker INR", "HPH_R",  
 		"Speaker", "Speaker OUTL",
 		"Speaker", "Speaker OUTR",
-		"Headphones", "HPH_L",
-		"Headphones", "HPH_R",
+		"Speaker INL", "HPH_L",
+		"Speaker INR", "HPH_R", 
+		"Headphones", "Headphones Switch OUTL",
+		"Headphones", "Headphones Switch OUTR",
+		"Headphones Switch INL", "HPH_L",
+		"Headphones Switch INR", "HPH_R",
 		"AMIC1", "MIC BIAS External1",
 		"AMIC2", "MIC BIAS External2",
 		"AMIC3", "MIC BIAS External1";
-	aux-devs = <&speaker_amp>;
+	aux-devs = <&speaker_amp>, <&headphones_switch>;
 };
 
 &usb {
@@ -707,19 +729,35 @@
 		bias-disable;
 	};
 
+	/* GPIO 1 - Headphones Switch */
+	headphones_switch_default: headphones-switch-default {
+		pins = "gpio1";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up; /* Falls High = Kopfhörer-Pfad aktiv */
+	};
+
+	headphones_switch_sleep: headphones-switch-sleep {
+		pins = "gpio1";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down; /* Verhindert das "Floating" und damit den Volume-Bug */
+	};
+
 	light_irq_default: light-irq-default-state {
 		pins = "gpio113";
 		function = "gpio";
 		drive-strength = <6>;
-		bias-pull-up;
+		input-enable;
+		bias-disable;
 	};
 
-	light_irq_sleep: light-irq-sleep-state {
+	/*light_irq_sleep: light-irq-sleep-state {
 		pins = "gpio113";
 		function = "gpio";
 		drive-strength = <2>;
 		bias-pull-down;
-	};
+	};*/
 
 	/*lcd_vsp_vsn_default: lcd-vsp-vsn-default-state {
 		pins = "gpio109";
@@ -774,22 +812,51 @@
 		bias-disable;
 	};
 
-       /* speaker_amp_default: speaker-amp-default-state {
+	/* GPIO 3 - Speaker Enable */
+	speaker_amp_default: speaker-amp-default {
 		pins = "gpio3";
 		function = "gpio";
 		drive-strength = <2>;
-		bias-disable;
-		output-low;
-	};*/
+		bias-pull-up;
+	};
 
-	speaker_switch_in_default: speaker-switch-in-default-state {
-		pins = "gpio1";
+	speaker_amp_sleep: speaker-amp-sleep {
+		pins = "gpio3";
 		function = "gpio";
 		drive-strength = <2>;
-		bias-disable;
-		//output-low;
+		bias-pull-down;
 	};
-	
+
+	/* GPIO 2 - Speaker Boost */
+	speaker_boost_default: speaker-boost-default {
+		pins = "gpio2";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	speaker_boost_sleep: speaker-boost-sleep {
+		pins = "gpio2";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	/* GPIO 0 - Speaker VDD */
+	speaker_vdd_default: speaker-vdd-default {
+		pins = "gpio0";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	speaker_vdd_sleep: speaker-vdd-sleep {
+		pins = "gpio0";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
 	touchscreen_default: touchscreen-default-state {
 		pins = "gpio12", "gpio13";
 		function = "gpio";
