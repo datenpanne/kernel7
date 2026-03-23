@@ -33,7 +33,7 @@ struct huawei_nt51021 {
 static inline
 struct huawei_nt51021 *to_huawei_nt51021(struct drm_panel *panel)
 {
-    return return container_of_const(panel, struct huawei_nt51021, panel);
+    return container_of_const(panel, struct huawei_nt51021, panel);
 }
 
 static void huawei_nt51021_reset(struct huawei_nt51021 *ctx)
