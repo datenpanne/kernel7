@@ -234,7 +234,6 @@
 		regulator-always-on;
 	};
 
-
 	/*reg_lcd_vddio: regulator-lcd-vddio {
 		compatible = "regulator-fixed";
 		regulator-name = "lcd_vddio";
@@ -248,7 +247,7 @@
 		startup-delay-us = <100000>;
 
 		pinctrl-0 = <&lcd_vddio_default>;
-		pinctrl-names = "default";*/
+		pinctrl-names = "default";
 	};*/
 	
 	reg_lcd_vsp: regulator-lcd-vsp {
