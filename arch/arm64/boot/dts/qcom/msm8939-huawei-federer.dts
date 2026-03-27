@@ -254,7 +254,7 @@
 		compatible = "regulator-fixed";
 		regulator-name = "lcd_vsp";
 
-		vin-supply = <&reg_lcd_vddio>;
+		vin-supply = <&pm8916_l6>;
 		regulator-min-microvolt = <5400000>;
 		regulator-max-microvolt = <5400000>;
 		regulator-boot-on;
