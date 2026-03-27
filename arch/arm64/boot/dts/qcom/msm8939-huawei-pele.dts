@@ -146,78 +146,87 @@
 		};
 	};
 
-	reg_lcd_vdd: regulator-lcd-vdd {
+	reg_lcd_bl_en: regulator-lcd-bl-en {
 		compatible = "regulator-fixed";
-		regulator-name = "lcd-vdd";
-
-		/*regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;*/
-		regulator-boot-on;
-		gpios = <&tlmm 3 GPIO_ACTIVE_HIGH>;
+		regulator-name = "lcd_bl_en";
+		vin-supply = <&reg_lcd_vled>;
+		gpio = <&tlmm 3 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
-
-		pinctrl-0 = <&lcd_vdd_default>;
-		pinctrl-names = "default";
+		startup-delay-us = <50000>;
 	};
 
 	reg_lcd_vddio: regulator-lcd-vddio {
 		compatible = "regulator-fixed";
-		regulator-name = "lcd-vddio";
+		regulator-name = "lcd_vddio";
 
-		vin-supply = <&pm8916_l16>;
-		/*regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;*/
+		vin-supply = <&pm8916_l6>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
 		regulator-boot-on;
 		gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 
-		pinctrl-0 = <&lcd_vddio_default>;
-		pinctrl-names = "default";
+		/*pinctrl-0 = <&lcd_vddio_default>;
+		pinctrl-names = "default";*/
+	};
+
+	reg_lcd_vled: regulator-lcd-vled {
+		compatible = "regulator-fixed";
+		regulator-name = "lcd_vled";
+		gpio = <&tlmm 109 GPIO_ACTIVE_HIGH>; // vled-gpio97 (0x6d)
+		enable-active-high;
 	};
 	
 	reg_lcd_vsp: regulator-lcd-vsp {
 		compatible = "regulator-fixed";
-		regulator-name = "lcd-vsp";
+		regulator-name = "lcd_vsp";
 
-		/*regulator-min-microvolt = <5400000>;
-		regulator-max-microvolt = <5400000>;*/
-		regulator-boot-on; // allows fb console to show up briefly at boot without always-on
+		vin-supply = <&reg_lcd_vddio>;
+		regulator-min-microvolt = <5400000>;
+		regulator-max-microvolt = <5400000>;
+		regulator-boot-on;
+		//regulator-always-on;
 
 		gpios = <&tlmm 97 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
-		//startup-delay-us = <200000>; //delay 200
+		startup-delay-us = <10000>;
 
-		pinctrl-names = "default";
-		pinctrl-0 = <&lcd_vsp_default>;
+		/*pinctrl-names = "default";
+		pinctrl-0 = <&lcd_vsp_default>;*/
 	};
 
 	reg_lcd_vsn: regulator-lcd-vsn {
 		compatible = "regulator-fixed";
-		regulator-name = "lcd-vsn";
-		
-		/*regulator-min-microvolt = <5400000>;
-		regulator-max-microvolt = <5400000>;*/
-		regulator-boot-on; // allows fb console to show up briefly at boot without always-on
+		regulator-name = "lcd_vsn";
+
+		vin-supply = <&reg_lcd_vsp>;		
+		regulator-min-microvolt = <5400000>;
+		regulator-max-microvolt = <5400000>;
+		regulator-boot-on;
+		//regulator-always-on;
 
 		gpios = <&tlmm 32 GPIO_ACTIVE_HIGH>;
-		//startup-delay-us = <200000>; //delay 200
 		enable-active-high;
+		startup-delay-us = <10000>;
 
-		pinctrl-names = "default";
-		pinctrl-0 = <&lcd_vsn_default>;
+		/*pinctrl-names = "default";
+		pinctrl-0 = <&lcd_vsn_default>;*/
 	};
 
-	reg_tp_vci: gpio-regulator@112 {
+	reg_tp_vci: regulator-tp-vci {
 		compatible = "regulator-fixed";
-		regulator-name = "tp-vci";
+		regulator-name = "tp_vci";
+		vin-supply = <&pm8916_l16>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
 		gpios = <&tlmm 112 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		regulator-always-on;
 	};
 
-	reg_tp_vddio: gpio-regulator@10 {
+	reg_tp_vddio: regulator-tp-vddio {
 		compatible = "regulator-fixed";
-		regulator-name = "tp-vddio";
+		regulator-name = "tp_vddio";
 		gpios = <&tlmm 10 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		regulator-always-on;
@@ -328,12 +337,13 @@
 		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
 		disp-te-gpios = <&tlmm 24 GPIO_ACTIVE_HIGH>;
 
-		vcc-supply = <&reg_lcd_vdd>;
-		vddio-supply = <&reg_lcd_vddio>;
+		vcc-supply = <&reg_lcd_vddio>;
 		vsp-supply = <&reg_lcd_vsp>;
 		vsn-supply = <&reg_lcd_vsn>;
-
-		vled-gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;
+		bl-supply = <&reg_lcd_bl_en>;
+		vled-supply = <&reg_lcd_vled>;
+		
+		//vled-gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;
 
 		//vsp-gpio-supply = <&reg_lcd_vsp_gpio>;
 		//vsn-gpio-supply = <&reg_lcd_vsn_gpio>;

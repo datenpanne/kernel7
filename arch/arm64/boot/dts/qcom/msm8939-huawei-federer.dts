@@ -224,9 +224,11 @@
 		sound-name-prefix = "Speaker";
 	};
 
-	reg_tp_vdd: regulator-tp-vdd@112 {
+	reg_tp_vdd: regulator-tp-vdd {
 		compatible = "regulator-fixed";
-		regulator-name = "tp-vdd";
+		regulator-name = "tp_vdd";
+		regulator-min-microvolt = <1850000>;
+		regulator-max-microvolt = <1850000>;
 		gpios = <&tlmm 112 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		regulator-always-on;

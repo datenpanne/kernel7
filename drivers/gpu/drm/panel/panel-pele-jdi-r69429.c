@@ -22,14 +22,15 @@ struct pele_jdi_r69429 {
 	struct mipi_dsi_device *dsi;
 	struct regulator_bulk_data *supplies;
 	struct gpio_desc *reset_gpio;
-	struct gpio_desc *vled_gpio;
+	//struct gpio_desc *vled_gpio;
 };
 
 static const struct regulator_bulk_data pele_jdi_r69429_supplies[] = {
 	{ .supply = "vcc" },    /* GPIO 2 */
-	{ .supply = "vddio" },  /* PM8916 L16 */
 	{ .supply = "vsp" },    /* GPIO 97 */
 	{ .supply = "vsn" },    /* GPIO 32 */
+	{ .supply = "vled" },   /* GPIO 109 */
+	{ .supply = "bl" },     /* GPIO 3 */
 };
 
 static inline
@@ -148,8 +149,8 @@ static int pele_jdi_r69429_prepare(struct drm_panel *panel)
 	}
 	msleep(20);
 
-	gpiod_set_value_cansleep(ctx->vled_gpio, 1);
-	msleep(10);
+	/*gpiod_set_value_cansleep(ctx->vled_gpio, 1);
+	msleep(10);*/
 
 	pele_jdi_r69429_reset(ctx);
 
@@ -164,7 +165,7 @@ static int pele_jdi_r69429_prepare(struct drm_panel *panel)
 	return 0;
 
 err_on:
-	gpiod_set_value_cansleep(ctx->vled_gpio, 0);
+	//gpiod_set_value_cansleep(ctx->vled_gpio, 0);
 	regulator_bulk_disable(ARRAY_SIZE(pele_jdi_r69429_supplies), ctx->supplies);
 	return ret;
 }
@@ -175,8 +176,8 @@ static int pele_jdi_r69429_unprepare(struct drm_panel *panel)
 
 	pele_jdi_r69429_off(ctx);
 
-	gpiod_set_value_cansleep(ctx->vled_gpio, 0);
-	msleep(20);
+	/*gpiod_set_value_cansleep(ctx->vled_gpio, 0);
+	msleep(20);*/
 
 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 	msleep(10);
@@ -289,17 +290,17 @@ static int pele_jdi_r69429_probe(struct mipi_dsi_device *dsi)
 		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
 				     "Failed to get reset-gpios\n");
 
-	ctx->vled_gpio = devm_gpiod_get(dev, "vled", GPIOD_OUT_LOW);
+	/*ctx->vled_gpio = devm_gpiod_get(dev, "vled", GPIOD_OUT_LOW);
 	if (IS_ERR(ctx->vled_gpio))
 		return dev_err_probe(dev, PTR_ERR(ctx->vled_gpio),
-				     "Failed to get vled-gpios\n");
+				     "Failed to get vled-gpios\n");*/
 
 	ctx->dsi = dsi;
 	mipi_dsi_set_drvdata(dsi, ctx);
 
 	dsi->lanes = 4;
 	dsi->format = MIPI_DSI_FMT_RGB888;
-	dsi->mode_flags = MIPI_DSI_MODE_NO_EOT_PACKET | MIPI_DSI_CLOCK_NON_CONTINUOUS;
+	dsi->mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS | MIPI_DSI_MODE_LPM;
 
 	drm_panel_init(&ctx->panel, dev, &pele_jdi_r69429_panel_funcs,
 		       DRM_MODE_CONNECTOR_DSI);
