@@ -90,7 +90,7 @@ static int pele_jdi_r69429_on(struct pele_jdi_r69429 *ctx)
 	mipi_dsi_dcs_set_tear_on_multi(&dsi_ctx, MIPI_DSI_DCS_TEAR_MODE_VBLANK);
 
 	// 36: Address Mode (RGB/BGR etc)
-	mipi_dsi_dcs_set_address_mode_multi(&dsi_ctx, 0x00);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, MIPI_DCS_SET_ADDRESS_MODE, 0x00);
 
 	// 3A: Pixel Format (0x77 = 24-bit RGB888)
 	mipi_dsi_dcs_set_pixel_format_multi(&dsi_ctx, 0x77);
@@ -299,7 +299,7 @@ static int pele_jdi_r69429_probe(struct mipi_dsi_device *dsi)
 
 	dsi->lanes = 4;
 	dsi->format = MIPI_DSI_FMT_RGB888;
-	dsi->mode_flags = MIPI_DSI_MODE_EOT_PACKET | MIPI_DSI_CLOCK_NON_CONTINUOUS;
+	dsi->mode_flags = MIPI_DSI_MODE_NO_EOT_PACKET | MIPI_DSI_CLOCK_NON_CONTINUOUS;
 
 	drm_panel_init(&ctx->panel, dev, &pele_jdi_r69429_panel_funcs,
 		       DRM_MODE_CONNECTOR_DSI);
@@ -311,7 +311,7 @@ static int pele_jdi_r69429_probe(struct mipi_dsi_device *dsi)
 				     "Failed to create backlight\n");
             
 	drm_panel_add(&ctx->panel);
-	dev_dbg(dev, "Probing JDI R69429: Lanes=%d, Format=%d, Flags=0x%x\n",
+	dev_dbg(dev, "Probing JDI R69429: Lanes=%d, Format=%d, Flags=0x%lx\n",
 		dsi->lanes, dsi->format, dsi->mode_flags);
 
 	ret = mipi_dsi_attach(dsi);
