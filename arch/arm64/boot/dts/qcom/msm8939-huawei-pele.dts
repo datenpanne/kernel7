@@ -29,12 +29,12 @@
 	};
 
 	reserved-memory {
-		cont_splash_mem: framebuffer@83000000 {
+/*		cont_splash_mem: framebuffer@83000000 {
 			compatible = "removed-dma-pool";
 			reg = <0x0 0x83000000 0x0 0x1A00000>;
 			no-map;
 		};
-/*
+
 		reserved@85000000 {
 			reg = <0x0 0x85000000 0x0 0x1000000>;
 			no-map;
@@ -150,10 +150,10 @@
 		compatible = "regulator-fixed";
 		regulator-name = "lcd-vdd";
 
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
+		/*regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;*/
 		regulator-boot-on;
-		gpio = <&tlmm 3 GPIO_ACTIVE_HIGH>;
+		gpios = <&tlmm 3 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 
 		pinctrl-0 = <&lcd_vdd_default>;
@@ -165,10 +165,10 @@
 		regulator-name = "lcd-vddio";
 
 		vin-supply = <&pm8916_l16>;
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
+		/*regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;*/
 		regulator-boot-on;
-		gpio = <&tlmm 2 GPIO_ACTIVE_HIGH>;
+		gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 
 		pinctrl-0 = <&lcd_vddio_default>;
@@ -177,10 +177,10 @@
 	
 	reg_lcd_vsp: regulator-lcd-vsp {
 		compatible = "regulator-fixed";
-		regulator-name = "vsp";
+		regulator-name = "lcd-vsp";
 
-		regulator-min-microvolt = <5400000>;
-		regulator-max-microvolt = <5400000>;
+		/*regulator-min-microvolt = <5400000>;
+		regulator-max-microvolt = <5400000>;*/
 		regulator-boot-on; // allows fb console to show up briefly at boot without always-on
 
 		gpios = <&tlmm 97 GPIO_ACTIVE_HIGH>;
@@ -193,10 +193,10 @@
 
 	reg_lcd_vsn: regulator-lcd-vsn {
 		compatible = "regulator-fixed";
-		regulator-name = "lcd vsn";
+		regulator-name = "lcd-vsn";
 		
-		regulator-min-microvolt = <5400000>;
-		regulator-max-microvolt = <5400000>;
+		/*regulator-min-microvolt = <5400000>;
+		regulator-max-microvolt = <5400000>;*/
 		regulator-boot-on; // allows fb console to show up briefly at boot without always-on
 
 		gpios = <&tlmm 32 GPIO_ACTIVE_HIGH>;
@@ -210,7 +210,7 @@
 	reg_tp_vci: gpio-regulator@112 {
 		compatible = "regulator-fixed";
 		regulator-name = "tp-vci";
-		gpio = <&tlmm 112 GPIO_ACTIVE_HIGH>;
+		gpios = <&tlmm 112 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		regulator-always-on;
 	};
@@ -218,7 +218,7 @@
 	reg_tp_vddio: gpio-regulator@10 {
 		compatible = "regulator-fixed";
 		regulator-name = "tp-vddio";
-		gpio = <&tlmm 10 GPIO_ACTIVE_HIGH>;
+		gpios = <&tlmm 10 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		regulator-always-on;
 	};
@@ -309,14 +309,6 @@
 &gpu {
 	status = "okay";
 };
-/*
-&lpass {
-	status = "okay";
-};
-
-&lpass_codec {
-	status = "okay";
-};*/
 
 &mdss {
 	status = "okay";
@@ -384,10 +376,12 @@
 	status = "okay";
 };
 
+/*
 &pm8916_charger {
 	monitored-battery = <&battery>;
 	status = "okay";
 };
+*/
 
 &pm8916_codec {
 	qcom,micbias-lvl = <2800>;
@@ -532,6 +526,20 @@
 	status = "okay";
 };
 
+&sound {
+	model = "msm8916";
+	audio-routing =
+		"AMIC1", "MIC BIAS Internal1",
+		"AMIC2", "MIC BIAS Internal2",
+		"AMIC3", "MIC BIAS Internal3";
+
+	pinctrl-0 = <&cdc_pdm_default>;
+	pinctrl-1 = <&cdc_pdm_sleep>;
+	pinctrl-names = "default", "sleep";
+
+	status = "okay";
+};
+
 /*&sound {
 	model = "msm8916";
 	audio-routing = "RX_BIAS", "MCLK",
@@ -574,7 +582,6 @@
 	extcon = <&charger>, <&usb_id>;
 	//vbus-supply = <&usb_otg_vbus>;
 	status = "okay";
-	//extcon = <&bq24296>, <&usb_id>;
 };
 
 &usb_hs_phy {

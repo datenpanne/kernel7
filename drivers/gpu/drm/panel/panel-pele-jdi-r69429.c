@@ -22,22 +22,14 @@ struct pele_jdi_r69429 {
 	struct mipi_dsi_device *dsi;
 	struct regulator_bulk_data *supplies;
 	struct gpio_desc *reset_gpio;
-	/*struct gpio_desc *vsn_gpio;
-	struct gpio_desc *vsp_gpio;
-	struct gpio_desc *blen_gpio;
-	struct gpio_desc *vcc_gpio;*/
 	struct gpio_desc *vled_gpio;
 };
 
 static const struct regulator_bulk_data pele_jdi_r69429_supplies[] = {
-	{ .supply = "power" },
-	{ .supply = "vsp" },
-	{ .supply = "vsn" },
-	//{ .supply = "vsp-gpio" },
-	//{ .supply = "vsn-gpio" },
-	//{ .supply = "vcc-gpio" },
-	//{ .supply = "backlight-gpio" },
-	//{ .supply = "vled-gpio" },
+	{ .supply = "vcc" },    /* GPIO 2 */
+	{ .supply = "vddio" },  /* PM8916 L16 */
+	{ .supply = "vsp" },    /* GPIO 97 */
+	{ .supply = "vsn" },    /* GPIO 32 */
 };
 
 static inline
@@ -53,72 +45,81 @@ static void pele_jdi_r69429_reset(struct pele_jdi_r69429 *ctx)
 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 	usleep_range(10000, 11000);
 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
-	usleep_range(5000, 6000);
+	msleep(20);
 }
-
-/*static void pele_jdi_r69429_power(struct pele_jdi_r69429 *ctx, int enable)
-{
-	gpiod_set_value(ctx->vcc_gpio, enable);
-	usleep_range(1000, 2000);
-	gpiod_set_value(ctx->blen_gpio, enable);
-	usleep_range(5000, 6000);
-	gpiod_set_value(ctx->vsp_gpio, enable);
-	usleep_range(5000, 6000);
-	gpiod_set_value(ctx->vsn_gpio, enable);
-	usleep_range(5000, 6000);
-	//gpiod_set_value(ctx->vled_gpio, enable);
-	//usleep_range(5000, 6000);
-}*/
 
 static int pele_jdi_r69429_on(struct pele_jdi_r69429 *ctx)
 {
 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
 
+	// Der Dump erzwingt LP-Mode für die Initialisierung
 	ctx->dsi->mode_flags |= MIPI_DSI_MODE_LPM;
-	mipi_dsi_msleep(&dsi_ctx, 40);
 
+	// B0: Hersteller-Spezifischer Unlock / Page Select
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb0, 0x00);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb3,
-					 0x04, 0x08, 0x00, 0x22, 0x00);
+
+	// B3: Power Control / VGH/VGL Spannungen
+	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb3, 0x04, 0x08, 0x00, 0x22, 0x00);
+
+	// B6: Interface Mode
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb6, 0x3a, 0xd3);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb8,
-					 0x07, 0x90, 0x1e, 0x00, 0x1e, 0x32);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb9,
-					 0x07, 0x82, 0x3c, 0x00, 0x3c, 0x87);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xba,
-					 0x07, 0x9e, 0x20, 0x00, 0x20, 0x8f);
+
+	// B8, B9, BA: Panel Timing & Source Driver Settings
+	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb8, 0x07, 0x90, 0x1e, 0x00, 0x1e, 0x32);
+	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb9, 0x07, 0x82, 0x3c, 0x00, 0x3c, 0x87);
+	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xba, 0x07, 0x9e, 0x20, 0x00, 0x20, 0x8f);
+
+	// CE: Gamma-Korrektur (Sehr wichtig für die Farbdarstellung)
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xce,
 					 0x7d, 0x40, 0x43, 0x49, 0x55, 0x62,
 					 0x71, 0x82, 0x94, 0xa8, 0xb9, 0xcb,
 					 0xdb, 0xe9, 0xf5, 0xfc, 0xff, 0x01,
 					 0x38, 0x02, 0x02, 0x44, 0x24);
+
+	// D6: Panel-Konfiguration
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xd6, 0x01);
+
+	// C6: Oszillator / Clock Settings
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xc6,
 					 0x78, 0x01, 0x45, 0x05, 0x67, 0x67,
 					 0x0a, 0x01, 0x01, 0x01, 0x01, 0x01,
 					 0x01, 0x01, 0x01, 0x01, 0x01, 0x0a,
 					 0x19, 0x05);
+
+	// 35: Tear Effect ON (Vblank)
 	mipi_dsi_dcs_set_tear_on_multi(&dsi_ctx, MIPI_DSI_DCS_TEAR_MODE_VBLANK);
+
+	// 36: Address Mode (RGB/BGR etc)
+	mipi_dsi_dcs_set_address_mode_multi(&dsi_ctx, 0x00);
+
+	// 3A: Pixel Format (0x77 = 24-bit RGB888)
 	mipi_dsi_dcs_set_pixel_format_multi(&dsi_ctx, 0x77);
+
+	// Spalten & Zeilen Adressierung (Full Resolution 1200x1920)
 	mipi_dsi_dcs_set_column_address_multi(&dsi_ctx, 0x0000, 0x04af);
 	mipi_dsi_dcs_set_page_address_multi(&dsi_ctx, 0x0000, 0x077f);
-	mipi_dsi_dcs_set_tear_scanline_multi(&dsi_ctx, 0x077f);
-	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, MIPI_DCS_WRITE_MEMORY_START,
-				     0x00);
-	mipi_dsi_dcs_set_display_brightness_multi(&dsi_ctx, 0x00);
-	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, MIPI_DCS_WRITE_CONTROL_DISPLAY,
-				     0x24);
-	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, MIPI_DCS_WRITE_POWER_SAVE, 0x00);
-	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, MIPI_DCS_SET_CABC_MIN_BRIGHTNESS,
-				     0x06);
 
+	// 51: Brightness Level (Initial 0, wird später vom Backlight-Treiber gesetzt)
+	mipi_dsi_dcs_set_display_brightness_multi(&dsi_ctx, 0x00);
+
+	// 53: Display Control (Brightness an, BLC an)
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, MIPI_DCS_WRITE_CONTROL_DISPLAY, 0x24);
+
+	// 5E: CABC Minimum Brightness
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, MIPI_DCS_SET_CABC_MIN_BRIGHTNESS, 0x06);
+
+	// 55: CABC Mode (0x01 = UI Mode laut DTS)
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, MIPI_DCS_WRITE_POWER_SAVE, 0x01);
+
+	// Exit Sleep & Display ON
 	mipi_dsi_dcs_exit_sleep_mode_multi(&dsi_ctx);
 	mipi_dsi_msleep(&dsi_ctx, 120);
 	mipi_dsi_dcs_set_display_on_multi(&dsi_ctx);
-	mipi_dsi_msleep(&dsi_ctx, 80);
+	mipi_dsi_msleep(&dsi_ctx, 20);
 
 	return dsi_ctx.accum_err;
 }
+
 static int pele_jdi_r69429_off(struct pele_jdi_r69429 *ctx)
 {
 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
@@ -136,84 +137,52 @@ static int pele_jdi_r69429_off(struct pele_jdi_r69429 *ctx)
 static int pele_jdi_r69429_prepare(struct drm_panel *panel)
 {
 	struct pele_jdi_r69429 *ctx = to_pele_jdi_r69429(panel);
-	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
 
+	dev_dbg(dev, "Preparing panel: Enabling regulators and GPIOs\n");
 	ret = regulator_bulk_enable(ARRAY_SIZE(pele_jdi_r69429_supplies), ctx->supplies);
 	if (ret < 0) {
-		dev_err(dev, "Failed to enable regulators: %d\n", ret);
+		dev_err(dev, "Failed to enable supplies: %d\n", ret);
 		return ret;
 	}
+	msleep(20);
 
-	/*pele_jdi_r69429_power(ctx,1);
-	usleep_range(1000, 2000);*/
-
-	ret = mipi_dsi_dcs_nop(ctx->dsi);
-		if (ret < 0) {
-			dev_err(dev, "Failed to send NOP: %d\n", ret);
-	}
-	mipi_dsi_msleep(&dsi_ctx, 80);
+	gpiod_set_value_cansleep(ctx->vled_gpio, 1);
+	msleep(10);
 
 	pele_jdi_r69429_reset(ctx);
 
+	dev_dbg(dev, "Sending init sequence...\n");
 	ret = pele_jdi_r69429_on(ctx);
 	if (ret < 0) {
-		dev_err(dev, "Failed to initialize panel: %d\n", ret);
-		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
-		regulator_bulk_disable(ARRAY_SIZE(pele_jdi_r69429_supplies), ctx->supplies);
-		return ret;
+		dev_err(dev, "Failed to initialize panel commands: %d\n", ret);
+		goto err_on;
 	}
+	dev_dbg(dev, "Panel is now ON\n");
 
 	return 0;
+
+err_on:
+	gpiod_set_value_cansleep(ctx->vled_gpio, 0);
+	regulator_bulk_disable(ARRAY_SIZE(pele_jdi_r69429_supplies), ctx->supplies);
+	return ret;
 }
-/*
-static int pele_jdi_r69429_enable(struct drm_panel *panel)
-{
-	struct pele_jdi_r69429 *ctx = to_pele_jdi_r69429(panel);
-	struct device *dev = &ctx->dsi->dev;
-	int ret;
 
-	gpiod_set_value(ctx->vled_gpio, 1);
-	usleep_range(5000, 6000)
-
-	ret = pele_jdi_r69429_panel_on(ctx);
-	if (ret < 0) {
-		dev_err(dev, "Failed to initialize panel: %d\n", ret);
-		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
-		regulator_bulk_disable(ARRAY_SIZE(pele_jdi_r69429_supplies), ctx->supplies);
-		return ret;
-	}
-
-	return 0;
-};*/
-/*
-static int pele_jdi_r69429_disable(struct drm_panel *panel)
-{
-	struct pele_jdi_r69429 *ctx = to_pele_jdi_r69429(panel);
-	struct device *dev = &ctx->dsi->dev;
-	int ret;
-
-	ret = pele_jdi_r69429_off(ctx);
-	if (ret < 0)
-		dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
-
-	gpiod_set_value(ctx->vled_gpio, 0);
-	usleep_range(5000, 6000);
-
-	return 0;
-}
-*/
 static int pele_jdi_r69429_unprepare(struct drm_panel *panel)
 {
 	struct pele_jdi_r69429 *ctx = to_pele_jdi_r69429(panel);
 
 	pele_jdi_r69429_off(ctx);
-	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
 
-//	pele_jdi_r69429_power(ctx,0);
+	gpiod_set_value_cansleep(ctx->vled_gpio, 0);
+	msleep(20);
+
+	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+	msleep(10);
+
 	regulator_bulk_disable(ARRAY_SIZE(pele_jdi_r69429_supplies), ctx->supplies);
-	usleep_range(1000, 2000);
+	msleep(100);
 
 	return 0;
 }
@@ -241,8 +210,6 @@ static int pele_jdi_r69429_get_modes(struct drm_panel *panel,
 
 static const struct drm_panel_funcs pele_jdi_r69429_panel_funcs = {
 	.prepare = pele_jdi_r69429_prepare,
-	//.enable = pele_jdi_r69429_enable,
-	//.disable = pele_jdi_r69429_disable,
 	.unprepare = pele_jdi_r69429_unprepare,
 	.get_modes = pele_jdi_r69429_get_modes,
 };
@@ -322,32 +289,7 @@ static int pele_jdi_r69429_probe(struct mipi_dsi_device *dsi)
 		return dev_err_probe(dev, PTR_ERR(ctx->reset_gpio),
 				     "Failed to get reset-gpios\n");
 
-	/*ctx->vcc_gpio = devm_gpiod_get(dev, "vcc", GPIOD_OUT_LOW);
-	if (IS_ERR(ctx->vcc_gpio))
-		return dev_err_probe(dev, PTR_ERR(ctx->vcc_gpio),
-				     "Failed to get vcc-gpios\n");*/
-
-	/*ctx->tp_vci_gpio = devm_gpiod_get(dev, "vci", GPIOD_OUT_HIGH);
-	if (IS_ERR(ctx->tp_vci_gpio))
-		return dev_err_probe(dev, PTR_ERR(ctx->tp_vci_gpio),
-				     "Failed to get vci-gpios\n");*/
-
-/*	ctx->blen_gpio = devm_gpiod_get(dev, "backlight", GPIOD_OUT_LOW);
-	if (IS_ERR(ctx->blen_gpio))
-		return dev_err_probe(dev, PTR_ERR(ctx->blen_gpio),
-				     "Failed to get backlight-gpios\n");
-
-	ctx->vsp_gpio = devm_gpiod_get(dev, "vsp", GPIOD_OUT_LOW);
-	if (IS_ERR(ctx->vsp_gpio))
-		return dev_err_probe(dev, PTR_ERR(ctx->vsp_gpio),
-				     "Failed to get vsp-gpios\n");
-
-	ctx->vsn_gpio = devm_gpiod_get(dev, "vsn", GPIOD_OUT_LOW);
-	if (IS_ERR(ctx->vsn_gpio))
-		return dev_err_probe(dev, PTR_ERR(ctx->vsn_gpio),
-				     "Failed to get vsn-gpios\n");*/
-
-	ctx->vled_gpio = devm_gpiod_get(dev, "vled", GPIOD_OUT_HIGH);
+	ctx->vled_gpio = devm_gpiod_get(dev, "vled", GPIOD_OUT_LOW);
 	if (IS_ERR(ctx->vled_gpio))
 		return dev_err_probe(dev, PTR_ERR(ctx->vled_gpio),
 				     "Failed to get vled-gpios\n");
@@ -357,8 +299,7 @@ static int pele_jdi_r69429_probe(struct mipi_dsi_device *dsi)
 
 	dsi->lanes = 4;
 	dsi->format = MIPI_DSI_FMT_RGB888;
-	dsi->mode_flags = MIPI_DSI_MODE_VIDEO_BURST | MIPI_DSI_MODE_VIDEO_HSE |
-			  MIPI_DSI_CLOCK_NON_CONTINUOUS;
+	dsi->mode_flags = MIPI_DSI_MODE_EOT_PACKET | MIPI_DSI_CLOCK_NON_CONTINUOUS;
 
 	drm_panel_init(&ctx->panel, dev, &pele_jdi_r69429_panel_funcs,
 		       DRM_MODE_CONNECTOR_DSI);
@@ -368,14 +309,17 @@ static int pele_jdi_r69429_probe(struct mipi_dsi_device *dsi)
 	if (IS_ERR(ctx->panel.backlight))
 		return dev_err_probe(dev, PTR_ERR(ctx->panel.backlight),
 				     "Failed to create backlight\n");
-
+            
 	drm_panel_add(&ctx->panel);
+	dev_dbg(dev, "Probing JDI R69429: Lanes=%d, Format=%d, Flags=0x%x\n",
+		dsi->lanes, dsi->format, dsi->mode_flags);
 
 	ret = mipi_dsi_attach(dsi);
 	if (ret < 0) {
 		drm_panel_remove(&ctx->panel);
 		return dev_err_probe(dev, ret, "Failed to attach to DSI host\n");
 	}
+	dev_info(dev, "JDI R69429 panel probed successfully\n");
 
 	return 0;
 }
