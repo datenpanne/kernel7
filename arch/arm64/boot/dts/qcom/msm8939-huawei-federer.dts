@@ -235,7 +235,7 @@
 	};
 
 
-	reg_lcd_vddio: regulator-lcd-vddio {
+	/*reg_lcd_vddio: regulator-lcd-vddio {
 		compatible = "regulator-fixed";
 		regulator-name = "lcd_vddio";
 
@@ -247,9 +247,9 @@
 		enable-active-high;
 		startup-delay-us = <100000>;
 
-		/*pinctrl-0 = <&lcd_vddio_default>;
+		pinctrl-0 = <&lcd_vddio_default>;
 		pinctrl-names = "default";*/
-	};
+	};*/
 	
 	reg_lcd_vsp: regulator-lcd-vsp {
 		compatible = "regulator-fixed";
@@ -265,8 +265,8 @@
 		enable-active-high;
 		startup-delay-us = <10000>;
 
-		/*pinctrl-names = "default";
-		pinctrl-0 = <&lcd_vsp_default>;*/
+		pinctrl-names = "default";
+		pinctrl-0 = <&lcd_vsp_vsn_default>;
 	};
 
 	reg_lcd_vsn: regulator-lcd-vsn {
@@ -283,8 +283,8 @@
 		enable-active-high;
 		startup-delay-us = <10000>;
 
-		/*pinctrl-names = "default";
-		pinctrl-0 = <&lcd_vsn_default>;*/
+		pinctrl-names = "default";
+		pinctrl-0 = <&lcd_vsp_vsn_default>;
 	};
 
 	otg_path: otg_path {
@@ -422,8 +422,8 @@
 		reg = <0>;
 
 		vddio-supply = <&pm8916_l6>;
-		vsp-supply = <&reg_lcd_vsp_vsn>;
-		vsn-supply = <&reg_lcd_vsp_vsn>;
+		vsp-supply = <&reg_lcd_vsp>;
+		vsn-supply = <&reg_lcd_vsn>;
 
 		backlight-gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
@@ -779,14 +779,13 @@
 		bias-pull-down;
 	};*/
 
-	/*lcd_vsp_vsn_default: lcd-vsp-vsn-default-state {
-		pins = "gpio109";
+	lcd_vsp_vsn_default: lcd-vsp-vsn-default-state {
+		pins = "gpio32","gpio97";
 		function = "gpio";
 		drive-strength = <2>;
-		bias-pull-up;
-		output-high;
+		bias-pull-down;
 	};
-
+/*
 	lcd_vddio_default: lcd-vddio-default-state {
 		pins = "gpio32";
 		function = "gpio";
