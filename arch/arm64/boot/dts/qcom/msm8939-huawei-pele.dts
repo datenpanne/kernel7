@@ -328,10 +328,10 @@
 		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
 		disp-te-gpios = <&tlmm 24 GPIO_ACTIVE_HIGH>;
 
-		power-supply = <&reg_lcd_vddio>;
+		vcc-supply = <&reg_lcd_vdd>;
+		vddio-supply = <&reg_lcd_vddio>;
 		vsp-supply = <&reg_lcd_vsp>;
 		vsn-supply = <&reg_lcd_vsn>;
-		bl-supply = <&reg_lcd_vdd>;
 
 		vled-gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;
 
