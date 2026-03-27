@@ -153,6 +153,9 @@
 		gpio = <&tlmm 3 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		startup-delay-us = <50000>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&lcd_bl_default>;
+		pinctrl-1 = <&lcd_bl_sleep>;
 	};
 
 	reg_lcd_vddio: regulator-lcd-vddio {
@@ -165,9 +168,9 @@
 		regulator-boot-on;
 		gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
-
-		/*pinctrl-0 = <&lcd_vddio_default>;
-		pinctrl-names = "default";*/
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&lcd_pwr_default>;
+		pinctrl-1 = <&lcd_pwr_sleep>;
 	};
 
 	reg_lcd_vled: regulator-lcd-vled {
@@ -175,6 +178,9 @@
 		regulator-name = "lcd_vled";
 		gpio = <&tlmm 109 GPIO_ACTIVE_HIGH>; // vled-gpio97 (0x6d)
 		enable-active-high;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&lcd_bl_default>;
+		pinctrl-1 = <&lcd_bl_sleep>;
 	};
 	
 	reg_lcd_vsp: regulator-lcd-vsp {
@@ -185,14 +191,14 @@
 		regulator-min-microvolt = <5400000>;
 		regulator-max-microvolt = <5400000>;
 		regulator-boot-on;
-		//regulator-always-on;
 
 		gpios = <&tlmm 97 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		startup-delay-us = <10000>;
-
-		/*pinctrl-names = "default";
-		pinctrl-0 = <&lcd_vsp_default>;*/
+		off-on-delay-us = <20000>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&lcd_pwr_default>;
+		pinctrl-1 = <&lcd_pwr_sleep>;
 	};
 
 	reg_lcd_vsn: regulator-lcd-vsn {
@@ -203,14 +209,14 @@
 		regulator-min-microvolt = <5400000>;
 		regulator-max-microvolt = <5400000>;
 		regulator-boot-on;
-		//regulator-always-on;
 
 		gpios = <&tlmm 32 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		startup-delay-us = <10000>;
-
-		/*pinctrl-names = "default";
-		pinctrl-0 = <&lcd_vsn_default>;*/
+		off-on-delay-us = <20000>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&lcd_pwr_default>;
+		pinctrl-1 = <&lcd_pwr_sleep>;
 	};
 
 	reg_tp_vci: regulator-tp-vci {
@@ -328,7 +334,6 @@
 	pinctrl-1 = <&mdss_sleep &mdss_te_sleep>;
 	pinctrl-names = "default", "sleep";
 	status = "okay";
-	//vddio-supply = <&pm8916_l6>;
 
 	panel@0 {
 		reg = <0>;
@@ -342,20 +347,6 @@
 		vsn-supply = <&reg_lcd_vsn>;
 		bl-supply = <&reg_lcd_bl_en>;
 		vled-supply = <&reg_lcd_vled>;
-		
-		//vled-gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;
-
-		//vsp-gpio-supply = <&reg_lcd_vsp_gpio>;
-		//vsn-gpio-supply = <&reg_lcd_vsn_gpio>;
-		//vcc-gpio-supply = <&reg_lcd_vcc_gpio>;
-		//backlight-gpio-supply = <&reg_lcd_backlight_gpio>;
-		//vled-gpio-supply = <&reg_lcd_vled_gpio>;
-
-		/*vsp-gpios = <&tlmm 97 GPIO_ACTIVE_HIGH>;
-		vsn-gpios = <&tlmm 32 GPIO_ACTIVE_HIGH>;
-		vcc-gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
-		backlight-gpios = <&tlmm 3 GPIO_ACTIVE_HIGH>;
-		vled-gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;*/
 
 		port {
 			panel_in: endpoint {
@@ -658,40 +649,38 @@
 		bias-disable;
 	};
 
-	lcd_vdd_default: lcd-vdd-default-state {
-		pins = "gpio3";
+	/* Power Pins: VDDIO (2), VSP (97), VSN (32) */
+	lcd_pwr_default: lcd-pwr-default-state {
+		pins = "gpio2", "gpio97", "gpio32";
 		function = "gpio";
 
-		drive-strength = <2>;
-		bias-pull-up;
-		output-high;
+		drive-strength = <8>;
+		bias-disable;
 	};
 
-	lcd_vddio_default: lcd-vddio-default-state {
-		pins = "gpio2";
+	lcd_pwr_sleep: lcd-pwr-sleep-state {
+		pins = "gpio2", "gpio97", "gpio32";
 		function = "gpio";
 
 		drive-strength = <2>;
-		bias-pull-up;
-		output-high;
+		bias-pull-down;
 	};
 
-	lcd_vsp_default: lcd-vsp-default-state {
-		pins = "gpio97";
+	/* Backlight Pins: BL_EN (3), VLED (109) */
+	lcd_bl_default: lcd-bl-default-state {
+		pins = "gpio3", "gpio109";
 		function = "gpio";
 
-		drive-strength = <2>;
-		bias-pull-up;
-		output-high;
+		drive-strength = <8>;
+		bias-disable;
 	};
 
-	lcd_vsn_default: lcd-vsn-default-state {
-		pins = "gpio32";
+	lcd_bl_sleep: lcd-bl-sleep-state {
+		pins = "gpio3", "gpio109";
 		function = "gpio";
 
 		drive-strength = <2>;
-		bias-pull-up;
-		output-high;
+		bias-pull-down;
 	};
 
 	mag_reset_default: mag-reset-default-state {
