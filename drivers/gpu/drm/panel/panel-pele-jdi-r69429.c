@@ -26,6 +26,7 @@ struct pele_jdi_r69429 {
 };
 
 static const struct regulator_bulk_data pele_jdi_r69429_supplies[] = {
+	{ .supply = "vddio" },	/* GPIO 112 */
 	{ .supply = "vcc" },    /* GPIO 2 */
 	{ .supply = "vsp" },    /* GPIO 97 */
 	{ .supply = "vsn" },    /* GPIO 32 */

@@ -100,6 +100,17 @@
 		};
 	};
 
+	fuel-gauge {
+	compatible = "adc-battery";
+
+		io-channels = <&pm8916_vadc 0x6>;//, <&pm8916_vadc 0x30>;//, <&pm8916_vadc 0x11>;
+		io-channel-names = "voltage";//, "temperature";//, "current";
+
+		//charged-gpios = <&tlmm 62>;
+		monitored-battery = <&battery>;
+		power-supplies = <&pm8916_charger>;
+	};
+
 	gpio-keys {
 		compatible = "gpio-keys";
 
@@ -222,10 +233,11 @@
 	reg_tp_vci: regulator-tp-vci {
 		compatible = "regulator-fixed";
 		regulator-name = "tp_vci";
-		vin-supply = <&pm8916_l16>;
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
+		vin-supply = <&pm8916_l17>;
+		//regulator-min-microvolt = <1800000>;
+		//regulator-max-microvolt = <1800000>;
 		gpios = <&tlmm 112 GPIO_ACTIVE_HIGH>;
+		regulator-boot-on;
 		enable-active-high;
 		regulator-always-on;
 	};
@@ -342,6 +354,7 @@
 		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
 		disp-te-gpios = <&tlmm 24 GPIO_ACTIVE_HIGH>;
 
+		vddio-supply = <&reg_tp_vci>; //only for gpio 112 needed
 		vcc-supply = <&reg_lcd_vddio>;
 		vsp-supply = <&reg_lcd_vsp>;
 		vsn-supply = <&reg_lcd_vsn>;
@@ -740,20 +753,5 @@
 		function = "gpio";
 		drive-strength = <8>;
 		bias-pull-up;
-	};
-};
-
-/ {
-	fuel-gauge {
-	compatible = "adc-battery";
-	// #address-cells = <1>;
-	//#size-cells = <0>;
-
-		io-channels = <&pm8916_vadc 0x6>;//, <&pm8916_vadc 0x30>;//, <&pm8916_vadc 0x11>;
-		io-channel-names = "voltage";//, "temperature";//, "current";
-
-		//charged-gpios = <&tlmm 62>;
-		monitored-battery = <&battery>;
-		power-supplies = <&pm8916_charger>;
 	};
 };
