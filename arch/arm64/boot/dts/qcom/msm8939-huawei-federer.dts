@@ -468,7 +468,7 @@
 };*/
 
 &pm8916_codec {
-	jack-gpios = <&tlmm 1 GPIO_ACTIVE_LOW>;
+	jack-gpios = <&tlmm 1 GPIO_ACTIVE_HIGH>;
 	qcom,micbias-lvl = <2800>;
 	qcom,mbhc-vthreshold-low = <75 150 237 450 500>;
 	qcom,mbhc-vthreshold-high = <75 150 237 450 500>;

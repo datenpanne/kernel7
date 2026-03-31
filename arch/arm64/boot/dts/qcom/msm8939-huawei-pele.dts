@@ -343,7 +343,7 @@
 
 &mdss_dsi0 {
 	pinctrl-0 = <&mdss_default &mdss_te_default>;
-	pinctrl-1 = <&mdss_sleep &mdss_te_sleep>;
+	pinctrl-1 = <&mdss_sleep &mdss_te_default>;
 	pinctrl-names = "default", "sleep";
 	status = "okay";
 
@@ -352,7 +352,7 @@
 		compatible = "huawei,pele-panel";
 
 		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
-		disp-te-gpios = <&tlmm 24 GPIO_ACTIVE_HIGH>;
+		te-gpios = <&tlmm 24 GPIO_ACTIVE_HIGH>;
 
 		vddio-supply = <&reg_tp_vci>; //only for gpio 112 needed
 		vcc-supply = <&reg_lcd_vddio>;
@@ -554,43 +554,6 @@
 	status = "okay";
 };
 
-/*&sound {
-	model = "msm8916";
-	audio-routing = "RX_BIAS", "MCLK",
-		"SPK PA",  "MCLK",
-		"INT_LDO_H",  "MCLK",
-		"MIC BIAS Internal3", "MIC_BIAS2",
-		"AMIC1", "MIC BIAS Internal1",
-		"AMIC2", "MIC BIAS Internal2",
-		"AMIC3", "MIC BIAS Internal3";
-
-	pinctrl-0 = <&cdc_pdm_default>;
-	pinctrl-1 = <&cdc_pdm_sleep>;
-	pinctrl-names = "default", "sleep";
-
-	status = "okay";
-
-	dai-link-primary {
-		link-name = "Primary MI2S";
-		cpu {
-			sound-dai = <&lpass MI2S_PRIMARY>;
-		};
-		codec {
-			sound-dai = <&lpass_codec 0>, <&pm8916_codec 0>;
-		};
-	};
-
-	dai-link-tertiary {
-		link-name = "Tertiary MI2S";
-		cpu {
-			sound-dai = <&lpass MI2S_TERTIARY>;
-		};
-		codec {
-			sound-dai = <&lpass_codec 1>, <&pm8916_codec 1>;
-		};
-	};
-};*/
-
 &usb {
 	//extcon = <&usb_id>, <&usb_id>;
 	extcon = <&charger>, <&usb_id>;
@@ -719,16 +682,8 @@
 
 	mdss_te_default: mdss-te-default-state {
 		pins = "gpio24";
-		function = "gpio";
-		//function = "mdp_vsync";
-		drive-strength = <2>;
-		bias-pull-disable;
-	};
-
-	mdss_te_sleep: mdss-te-sleep-state {
-		pins = "gpio24";
-		function = "gpio";
-		//function = "mdp_vsync";
+		//function = "gpio";
+		function = "mdp_vsync";
 		drive-strength = <2>;
 		bias-pull-down;
 	};
