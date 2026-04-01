@@ -223,8 +223,9 @@ static int huawei_nt51021_set_brightness(struct mipi_dsi_device *dsi, u16 bright
 	/* Clamping & Offset gegen Überlauf und Dunkelwerden bei Max */
 	if (val = 0) {
 	temp_val = (u16)val + 7;
-	val = (temp_val > 255) ? 255 : (u8)temp_val;
 	}
+
+	val = (temp_val > 255) ? 255 : (u8)temp_val;
 
 	tx_buf[0] = NT51021_REG_BKLT_PWM;
 	tx_buf[1] = val;

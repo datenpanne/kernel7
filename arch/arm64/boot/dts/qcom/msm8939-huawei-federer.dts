@@ -70,6 +70,8 @@
 		energy-full-design-microwatt-hours = <24700000>;
 		charge-full-design-microamp-hours = <6500000>;
 
+		factory-internal-resistance-micro-ohms = <118000>;
+
 		precharge-current-microamp = <1300000>;
 		charge-term-current-microamp = <260000>; //4%(from vendor dts)
 
@@ -79,7 +81,6 @@
 		//constant-charge-voltage-max-microvolt = <3800000>; //not charging?
 		constant-charge-voltage-max-microvolt = <4350000>;
 
-		factory-internal-resistance-micro-ohms = <118000>;
 		//operating-range-celsius = <0 52>;
 		//alert-celsius = <10 42>;*/
 
@@ -111,6 +112,17 @@
 			<3688000 11>, <3686000 10>, <3684000 9>, <3682000 8>,
 			<3678000 7>, <3668000 6>, <3644000 5>, <3600000 4>,
 			<3540000 3>, <3458000 2>, <3325000 1>, <3000000 0>;
+	};
+
+	fuel-gauge {
+	compatible = "adc-battery";
+
+		io-channels = <&pm8916_vadc 0x6>, <&pm8916_vadc 0x30>;
+		io-channel-names = "voltage", "temperature";
+
+		//charged-gpios = <&tlmm 62>;
+		monitored-battery = <&battery>;
+		power-supplies = <&charger>;
 	};
 
 	gpio-hall-sensor {
@@ -412,8 +424,8 @@
 };
 
 &mdss_dsi0 {
-	pinctrl-0 = <&mdss_default>;// &mdss_te_default>;
-	pinctrl-1 = <&mdss_sleep>;// &mdss_te_sleep>;
+	pinctrl-0 = <&mdss_default>;
+	pinctrl-1 = <&mdss_sleep>;
 	pinctrl-names = "default", "sleep";
 	status = "okay";
 
@@ -428,8 +440,6 @@
 
 		backlight-gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
-		
-	//	te-gpios = <&tlmm 24 GPIO_ACTIVE_HIGH>;
 
 		port {
 			panel_in: endpoint {
@@ -468,7 +478,7 @@
 };*/
 
 &pm8916_codec {
-	jack-gpios = <&tlmm 1 GPIO_ACTIVE_HIGH>;
+	jack-gpios = <&tlmm 1 GPIO_ACTIVE_LOW>;
 	qcom,micbias-lvl = <2800>;
 	qcom,mbhc-vthreshold-low = <75 150 237 450 500>;
 	qcom,mbhc-vthreshold-high = <75 150 237 450 500>;
@@ -534,18 +544,6 @@
 };
 
 &pm8916_vadc {
-	channel@2 {
-		reg = <VADC_VCHG_SNS>;
-		qcom,pre-scaling = <10 81>;
-		label = "ireg_fb";
-	};
-
-	channel@5 {
-		reg = <VADC_VCOIN>;
-		qcom,pre-scaling = <1 3>;
-		label = "vcoin";
-	};
-
 	channel@6 {
 		reg = <VADC_VBAT_SNS>;
 		qcom,pre-scaling = <1 3>;
@@ -557,6 +555,7 @@
 		reg = <VADC_P_MUX2_1_1>;
 		qcom,decimation = <512>;
 		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
 		qcom,hw-settle-time = <200>;
 		qcom,avg-samples = <1>;
 		label = "mpp2_div1";
@@ -567,6 +566,7 @@
 		reg = <VADC_P_MUX4_1_1>;
 		qcom,decimation = <512>;
 		qcom,pre-scaling = <1 1>;
+		//qcom,ratiometric;
 		qcom,hw-settle-time = <200>;
 		qcom,avg-samples = <1>;
 		label = "mpp4_div1";
@@ -581,22 +581,6 @@
 		label = "batt_therm";
 	};
 
-	channel@31 {
-		reg = <VADC_LR_MUX2_BAT_ID>;
-		qcom,pre-scaling = <1 1>;
-		qcom,ratiometric;
-		qcom,hw-settle-time = <200>;
-		label = "batt_id";
-	};
-
-	channel@32 {
-		reg = <VADC_LR_MUX3_XO_THERM>;
-		qcom,pre-scaling = <1 1>;
-		qcom,ratiometric;
-		qcom,hw-settle-time = <200>;
-		label = "xo_therm";
-	};
-
 	/* pa therm0 */
 	channel@36 {
 		reg = <VADC_LR_MUX7_HW_ID>;
@@ -604,14 +588,6 @@
 		qcom,ratiometric;
 		qcom,hw-settle-time = <200>;
 		label = "pa_therm0";
-	};
-
-	channel@3c {
-		reg = <VADC_LR_MUX3_BUF_XO_THERM>;
-		qcom,pre-scaling = <1 1>;
-		qcom,ratiometric;
-		qcom,hw-settle-time = <200>;
-		label = "xo_therm_buf";
 	};
 
 	channel@b {
@@ -760,6 +736,7 @@
 		function = "gpio";
 		drive-strength = <2>;
 		bias-disable;
+		output-low;
 		//bias-pull-up; /* Falls High = Kopfhörer-Pfad aktiv */
 	};
 
@@ -894,20 +871,5 @@
 		function = "gpio";
 		drive-strength = <8>;
 		bias-pull-up;
-	};
-};
-
-/ {
-	fuel-gauge {
-	compatible = "adc-battery";
-	// #address-cells = <1>;
-	//#size-cells = <0>;
-
-		io-channels = <&pm8916_vadc 0x6>, <&pm8916_vadc 0x11>, <&pm8916_vadc 0x30>;
-		io-channel-names = "voltage","current","temperature";
-
-		//charged-gpios = <&tlmm 62>;
-		monitored-battery = <&battery>;
-		power-supplies = <&charger>;
 	};
 };
