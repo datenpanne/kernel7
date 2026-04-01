@@ -68,8 +68,10 @@
 		energy-full-design-microwatt-hours = <16074000>;
 		charge-full-design-microamp-hours = <4230000>;
 
-		//precharge-current-microamp = <1300000>;
-		//charge-term-current-microamp = <150000>;
+		factory-internal-resistance-micro-ohms = <120000>;
+
+		precharge-current-microamp = <250000>;
+		charge-term-current-microamp = <150000>;
 
 		ocv-capacity-celsius = <25>;
 		ocv-capacity-table-0 = <4330000 100>, <4265000 95>,
@@ -103,12 +105,12 @@
 	fuel-gauge {
 	compatible = "adc-battery";
 
-		io-channels = <&pm8916_vadc 0x6>;//, <&pm8916_vadc 0x30>;//, <&pm8916_vadc 0x11>;
-		io-channel-names = "voltage";//, "temperature";//, "current";
+		io-channels = <&pm8916_vadc 0x6>, <&pm8916_vadc 0x30>;
+		io-channel-names = "voltage", "temperature";
 
 		//charged-gpios = <&tlmm 62>;
 		monitored-battery = <&battery>;
-		power-supplies = <&pm8916_charger>;
+		power-supplies = <&charger>;
 	};
 
 	gpio-keys {
@@ -250,6 +252,19 @@
 		regulator-always-on;
 	};
 
+	otg_path: otg_path {
+		compatible = "regulator-fixed";
+		regulator-name = "otg-path";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		/* does not handle "gpios" property! */
+		gpio = <&tlmm 108 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		pinctrl-names = "default";
+		pinctrl-0 = <&bq24192_charger_en_default>;
+		vin-supply = <&usb_otg_vbus>;	/* request otg booster of bq24296 */
+	};
+
 	usb_id: usb-id {
 		compatible = "linux,extcon-usb-gpio";
 		id-gpios = <&tlmm 118 GPIO_ACTIVE_HIGH>;
@@ -271,7 +286,7 @@
 		vdd-supply = <&pm8916_l17>;
 		vddio-supply = <&pm8916_l6>;
 
-		mount-matrix = "-1", "-1", "0",
+		mount-matrix = "-1", "0", "0",
 			       "0", "0", "0",
 			       "0", "0", "1";
 
@@ -304,9 +319,8 @@
 		interrupts = <62 IRQ_TYPE_EDGE_FALLING>;
 		pinctrl-names = "default", "sleep";
 		pinctrl-0 = <&bq24192_charger_default>;
-		pinctrl-1 = <&bq24192_charger_sleep>;
 		monitored-battery = <&battery>;
-		//ti,system-minimum-microvolt = <3350000>;
+		ti,system-minimum-microvolt = <3300000>;
 		omit-battery-class;
 		usb_otg_vbus: usb-otg-vbus {
 		};
@@ -406,6 +420,27 @@
 	status = "okay";
 };
 
+&pm8916_mpps {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pm8916_mpp2_in &pm8916_mpp4_in>;
+
+	pm8916_mpp2_in: pm8916-mpp2-in-state {
+		pinconf {
+			pins = "mpp2";
+			function = "analog"; //input
+			qcom,amux-route = <1>; //PMIC_MPP_AMUX_ROUTE_CH6
+		};
+	};
+
+	pm8916_mpp4_in: pm8916-mpp4-in-state {
+		pinconf {
+			pins = "mpp4";
+			function = "analog"; //input
+			qcom,amux-route = <3>; //PMIC_MPP_AMUX_ROUTE_CH8
+		};
+	};
+};
+
 &pm8916_resin {
 	linux,code = <KEY_VOLUMEDOWN>;
 
@@ -437,25 +472,13 @@
 };
 
 &pm8916_vadc {
-	channel@2 {
-		reg = <VADC_VCHG_SNS>;
-		qcom,pre-scaling = <10 81>;
-		label = "ireg_fb";
-	};
-
-	channel@5 {
-		reg = <VADC_VCOIN>;
-		qcom,pre-scaling = <1 3>;
-		label = "vcoin";
-	};
-
 	channel@6 {
 		reg = <VADC_VBAT_SNS>;
 		qcom,pre-scaling = <1 3>;
 		label = "vbat_sns";
 	};
 
-	/*// cam therm 
+	// cam therm 
 	channel@11 {
 		reg = <VADC_P_MUX2_1_1>;
 		qcom,pre-scaling = <1 1>;
@@ -469,7 +492,7 @@
 		qcom,pre-scaling = <1 1>;
 		qcom,hw-settle-time = <200>;
 		label = "mpp4_div1";
-	};*/
+	};
 
 	channel@30 {
 		reg = <VADC_LR_MUX1_BAT_THERM>;
@@ -480,22 +503,6 @@
 		label = "batt_therm";
 	};
 
-	channel@31 {
-		reg = <VADC_LR_MUX2_BAT_ID>;
-		qcom,pre-scaling = <1 1>;
-		qcom,ratiometric;
-		qcom,hw-settle-time = <200>;
-		label = "batt_id";
-	};
-
-	/*channel@32 {
-		reg = <VADC_LR_MUX3_XO_THERM>;
-		qcom,pre-scaling = <1 1>;
-		qcom,ratiometric;
-		qcom,hw-settle-time = <200>;
-		label = "xo_therm";
-	};
-
 	// pa therm0 
 	channel@36 {
 		reg = <VADC_LR_MUX7_HW_ID>;
@@ -504,22 +511,6 @@
 		qcom,hw-settle-time = <200>;
 		label = "pa_therm0";
 	};
-
-	channel@3c {
-		reg = <VADC_LR_MUX3_BUF_XO_THERM>;
-		qcom,pre-scaling = <1 1>;
-		qcom,ratiometric;
-		qcom,hw-settle-time = <200>;
-		label = "xo_therm_buf";
-	};
-
-	channel@b {
-		reg = <VADC_CHG_TEMP>;
-		//reg = <0xb>;
-		qcom,pre-scaling = <1 1>;
-		qcom,hw-settle-time = <0>;
-		label = "chg_temp";
-	};*/
 };
 
 &pm8916_vib {
@@ -597,11 +588,12 @@
 		bias-pull-up;
 	};
 
-	bq24192_charger_sleep: bq24196-charger-sleep-state  {
-		pins = "gpio62";
+	bq24192_charger_en_default: bq24196-charger-en-default-state  {
+		pins = "gpio108";
 		function = "gpio";
 		drive-strength = <2>;
-		bias-pull-up;
+		bias-disable;
+		output-low;
 	};
 
 	gpio_hall_sensor_default: gpio-hall-sensor-default-state {
