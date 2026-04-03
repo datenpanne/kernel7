@@ -193,11 +193,6 @@
 	};
 };
 
-&gpio-leds {
-	led-2 {
-	gpios = <&tlmm 10 GPIO_ACTIVE_HIGH>;
-};
-
 &mdss_dsi0 {
 	pinctrl-0 = <&mdss_default>;
 	pinctrl-1 = <&mdss_sleep>;
@@ -385,5 +380,6 @@
 
 &{/gpio-leds} {
 	led-2 {
-	gpios = <&tlmm 10 GPIO_ACTIVE_HIGH>;
+		gpios = <&tlmm 10 GPIO_ACTIVE_HIGH>;
+	}
 };

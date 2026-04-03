@@ -279,5 +279,6 @@
 
 &{/gpio-leds} {
 	led-2 {
-	gpios = <&tlmm 1 GPIO_ACTIVE_HIGH>;
+		gpios = <&tlmm 1 GPIO_ACTIVE_HIGH>;
+	}
 };
