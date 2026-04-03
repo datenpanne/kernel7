@@ -105,6 +105,7 @@
 		enable-active-high;
 		regulator-always-on;
 	};
+};
 
 &blsp_i2c2 {
 	status = "okay";

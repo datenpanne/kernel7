@@ -145,6 +145,7 @@
 	usb_id: usb-id {
 		id-gpios = <&tlmm 117 GPIO_ACTIVE_HIGH>;
 	};
+};
 
 &blsp_i2c2 {
 	status = "okay";
