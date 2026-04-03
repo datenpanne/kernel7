@@ -1,0 +1,522 @@
+// SPDX-License-Identifier: GPL-2.0-only
+
+#include "msm8939-pm8916.dtsi"
+#include "msm8916-modem-qdsp6.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/pinctrl/qcom,pmic-gpio.h>
+#include <dt-bindings/pinctrl/qcom,pmic-mpp.h>
+
+/ {
+	aliases {
+		mmc0 = &sdhc_1; /* eMMC */
+		mmc1 = &sdhc_2; /* SD card */
+		serial0 = &blsp_uart2;
+		i2c0 = &blsp_i2c2;
+	};
+
+	chosen {
+		stdout-path = "serial0";
+	};
+
+	reserved-memory {
+		cont_splash_mem: framebuffer@83000000 {
+			compatible = "removed-dma-pool";
+			reg = <0x0 0x83000000 0x0 0x1A00000>;
+			no-map;
+		};
+
+		reserved@85000000 {
+			reg = <0x0 0x85000000 0x0 0x1000000>;
+			no-map;
+		};
+
+		qseecom_mem: qseecom@84a00000 {
+			reg = <0x0 0x84a00000 0x0 0x1600000>;
+			no-map;
+		};
+
+		tz-hwlog@8c700000 {
+			reg = <0x0 0x8c700000 0x0 0x400000>;
+			no-map;
+		};
+
+		ramoops@8cb00000 {
+			compatible = "ramoops";
+			reg = <0x0 0x8cb00000 0x0 0x200000>;
+
+			record-size = <0x10000>;
+			console-size = <0x100000>;
+			ftrace-size = <0>;
+		};
+	};
+
+	gpio-hall-sensor {
+		compatible = "gpio-keys";
+
+		pinctrl-0 = <&gpio_hall_sensor_default>;
+		pinctrl-names = "default";
+
+		label = "GPIO Hall Effect Sensor";
+
+		event-hall-sensor {
+			label = "Hall Effect Sensor";
+			gpios = <&tlmm 69 GPIO_ACTIVE_LOW>;
+			linux,input-type = <EV_SW>;
+			linux,code = <SW_LID>;
+			linux,can-disable;
+		};
+	};
+
+	fuel-gauge {
+	compatible = "adc-battery";
+
+		io-channels = <&pm8916_vadc 0x6>, <&pm8916_vadc 0x30>;
+		io-channel-names = "voltage", "temperature";
+
+		//charged-gpios = <&tlmm 62>;
+		monitored-battery = <&battery>;
+		power-supplies = <&charger>;
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		pinctrl-0 = <&gpio_keys_default>;
+		pinctrl-names = "default";
+
+		label = "GPIO Buttons";
+
+		button-volume-up {
+			label = "Volume Up";
+			gpios = <&tlmm 107 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_VOLUMEUP>;
+		};
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		pinctrl-0 = <&gpio_leds_default>;
+		pinctrl-names = "default";
+
+		led-0 {
+			gpios = <&tlmm 8 GPIO_ACTIVE_HIGH>;
+			color = <LED_COLOR_ID_RED>;
+			default-state = "off";
+			function = LED_FUNCTION_INDICATOR;
+			retain-state-suspended;
+		};
+
+		led-1 {
+			gpios = <&tlmm 9 GPIO_ACTIVE_HIGH>;
+			color = <LED_COLOR_ID_GREEN>;
+			default-state = "off";
+			function = LED_FUNCTION_INDICATOR;
+			retain-state-suspended;
+		};
+
+		led-2 {
+			color = <LED_COLOR_ID_BLUE>;
+			default-state = "off";
+			function = LED_FUNCTION_INDICATOR;
+			retain-state-suspended;
+		};
+	};
+	
+	reg_lcd_vsp: regulator-lcd-vsp {
+		compatible = "regulator-fixed";
+		regulator-name = "lcd_vsp";
+
+		vin-supply = <&reg_lcd_vddio>;
+		regulator-min-microvolt = <5400000>;
+		regulator-max-microvolt = <5400000>;
+		regulator-boot-on;
+		startup-delay-us = <10000>;
+		gpios = <&tlmm 97 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	reg_lcd_vsn: regulator-lcd-vsn {
+		compatible = "regulator-fixed";
+		regulator-name = "lcd_vsn";
+
+		vin-supply = <&reg_lcd_vsp>;		
+		regulator-min-microvolt = <5400000>;
+		regulator-max-microvolt = <5400000>;
+		regulator-boot-on;
+		startup-delay-us = <10000>;
+		gpios = <&tlmm 32 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	otg_path: otg_path {
+		compatible = "regulator-fixed";
+		regulator-name = "otg-path";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		gpios = <&tlmm 108 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		pinctrl-names = "default";
+		pinctrl-0 = <&bq24296_charger_en_default>;
+		vin-supply = <&usb_otg_vbus>;	/* request otg booster of bq24296 */
+	};
+
+	usb_id: usb-id {
+		compatible = "linux,extcon-usb-gpio";
+		//id-gpios = <&tlmm 118 GPIO_ACTIVE_HIGH>; //pele 118, federer 117
+		pinctrl-0 = <&usb_id_default>;
+		pinctrl-names = "default";
+	};
+};
+
+&blsp_i2c2 {
+	status = "okay";
+
+	flash-led-controller@63 {
+		compatible = "leds-lm3642";
+		reg = <0x63>;
+
+		pinctrl-0 = <&camera_rear_flash_default>;
+		pinctrl-1 = <&camera_rear_flash_sleep>;
+		pinctrl-names = "default","sleep";
+
+		//gpios = <&tlmm 86 GPIO_ACTIVE_HIGH>,<&tlmm 31 GPIO_ACTIVE_HIGH >;
+
+		flash_led {
+			linux,default-trigger = "flash";
+			function = LED_FUNCTION_FLASH;
+			color = <LED_COLOR_ID_WHITE>;
+			gpios = <&tlmm 86 GPIO_ACTIVE_HIGH>;
+			led-sources = <0>, <1>;
+		};
+		torch_led {
+			linux,default-trigger = "torch";
+			function = LED_FUNCTION_TORCH;
+			color = <LED_COLOR_ID_WHITE>;
+			gpios = <&tlmm 31 GPIO_ACTIVE_HIGH >;
+			led-sources = <0>, <0>;
+		};
+	};
+};
+
+&blsp_i2c4 {
+	status = "okay";
+	charger: bq24296@6b {
+		compatible = "ti,bq24296";
+		reg = <0x6b>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <62 IRQ_TYPE_EDGE_FALLING>;
+		pinctrl-names = "default", "sleep";
+		pinctrl-0 = <&bq24296_charger_default>;
+		monitored-battery = <&battery>;
+		ti,system-minimum-microvolt = <3300000>;
+		omit-battery-class;
+		usb_otg_vbus: usb-otg-vbus {
+		};
+	};
+};
+
+&blsp_uart2 {
+	pinctrl-0 = <&blsp_uart2_console_default>;
+	pinctrl-1 = <&blsp_uart2_console_sleep>;
+	pinctrl-names = "default", "sleep";
+	status = "okay";
+};
+
+&gpu {
+	status = "okay";
+};
+
+&mdss {
+	status = "okay";
+};
+
+&mdss_dsi0 {
+	pinctrl-names = "default", "sleep";
+	status = "okay";
+
+	panel@0 {
+		reg = <0>;
+
+		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
+
+		vsp-supply = <&reg_lcd_vsp>;
+		vsn-supply = <&reg_lcd_vsn>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&mdss_dsi0_out>;
+			};
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	data-lanes = <0 1 2 3>;
+	remote-endpoint = <&panel_in>;
+};
+
+&mdss_dsi0_phy {
+	qcom,dsi-phy-regulator-ldo-mode;
+	status = "okay";
+};
+
+&pm8916_bms {
+	monitored-battery = <&battery>;
+	power-supplies = <&charger>;
+
+	status = "okay";
+};
+
+&pm8916_codec {
+	qcom,micbias-lvl = <2800>;
+	qcom,mbhc-vthreshold-low = <75 150 237 450 500>;
+	qcom,mbhc-vthreshold-high = <75 150 237 450 500>;
+	qcom,hphl-jack-type-normally-open;
+
+	status = "okay";
+};
+
+&pm8916_mpps {
+	pinctrl-names = "default";
+	pinctrl-0 = <&pm8916_mpp2_in &pm8916_mpp4_in>;
+
+	pm8916_mpp2_in: pm8916-mpp2-in-state {
+		pinconf {
+			pins = "mpp2";
+			function = "analog"; //input
+			qcom,amux-route = <1>; //PMIC_MPP_AMUX_ROUTE_CH6
+		};
+	};
+
+	pm8916_mpp4_in: pm8916-mpp4-in-state {
+		pinconf {
+			pins = "mpp4";
+			function = "analog"; //input
+			qcom,amux-route = <3>; //PMIC_MPP_AMUX_ROUTE_CH8
+		};
+	};
+};
+
+&pm8916_resin {
+	linux,code = <KEY_VOLUMEDOWN>;
+	status = "okay";
+};
+
+&pm8916_rpm_regulators {
+	pm8916_l6: l6 {
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on; 
+		regulator-boot-on;
+	};
+
+	pm8916_l8: l8 {
+		regulator-min-microvolt = <2950000>;
+		regulator-max-microvolt = <2950000>;
+	};
+
+	pm8916_l16: l16 {
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-boot-on;
+	};
+
+	pm8916_l17: l17 {
+		regulator-min-microvolt = <2850000>;
+		regulator-max-microvolt = <2850000>;
+		regulator-always-on; 
+		regulator-boot-on;
+	};
+};
+
+&pm8916_vadc {
+	channel@6 {
+		reg = <VADC_VBAT_SNS>;
+		qcom,pre-scaling = <1 1>;
+		label = "vbat_sns";
+	};
+
+	/* cam therm */
+	channel@11 {
+		reg = <VADC_P_MUX2_1_1>;
+		qcom,decimation = <512>;
+		qcom,pre-scaling = <1 1>;
+		//qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,avg-samples = <1>;
+		label = "mpp2_div1";
+	};
+
+	/* cpu therm */
+	channel@13 {
+		reg = <VADC_P_MUX4_1_1>;
+		qcom,decimation = <512>;
+		qcom,pre-scaling = <1 1>;
+		//qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,avg-samples = <1>;
+		label = "mpp4_div1";
+	};
+
+	channel@30 {
+		reg = <VADC_LR_MUX1_BAT_THERM>;
+		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		qcom,avg-samples = <1>;
+		label = "batt_therm";
+	};
+
+	/* pa therm0 */
+	channel@36 {
+		reg = <VADC_LR_MUX7_HW_ID>;
+		qcom,pre-scaling = <1 1>;
+		qcom,ratiometric;
+		qcom,hw-settle-time = <200>;
+		label = "pa_therm0";
+	};
+
+	channel@b {
+		reg = <VADC_CHG_TEMP>;
+		//reg = <0xb>;
+		qcom,pre-scaling = <1 1>;
+		qcom,hw-settle-time = <0>;
+		label = "chg_temp";
+	};
+};
+
+&pm8916_vib {
+	status = "okay";
+};
+
+&sdhc_1 {
+	status = "okay";
+};
+
+&sdhc_2 {
+	pinctrl-0 = <&sdc2_default &sdc2_cd_default>;
+	pinctrl-1 = <&sdc2_sleep &sdc2_cd_default>;
+	pinctrl-names = "default", "sleep";
+
+	status = "okay";
+};
+
+&usb {
+	//extcon = <&usb_id>, <&usb_id>;
+	extcon = <&charger>, <&usb_id>;
+	vbus-supply = <&otg_path>;
+
+	status = "okay";
+};
+
+&venus_mem {
+	status = "okay";
+};
+
+&usb_hs_phy {
+	//extcon = <&usb_id>;
+	extcon = <&charger>;
+
+	/*qcom,init-seq = /bits/ 8 <0x0 0x74>,
+				<0x1 0x65>,
+				<0x2 0x31>,
+				<0x3 0x33>;*/
+};
+
+&wcnss {
+	status = "okay";
+};
+
+&wcnss_mem {
+	status = "okay";
+};
+
+&tlmm {
+	accel_int_default: accel-int-default-state {
+		pins = "gpio115";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	bq24296_charger_default: bq24296-charger-default-state  {
+		pins = "gpio62";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	bq24296_charger_en_default: bq24296-charger-en-default-state  {
+		pins = "gpio108";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-low;
+	};
+
+	camera_rear_flash_default: camera-rear-flash-default-state {
+		pins = "gpio31", "gpio86";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	camera_rear_flash_sleep: camera-rear-flash-sleep-state {
+		pins = "gpio31", "gpio86";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	gpio_hall_sensor_default: gpio-hall-sensor-default-state {
+		pins = "gpio69";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio_keys_default: gpio-keys-default-state {
+		pins = "gpio107";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	gpio_leds_default: gpio-leds-default-state {
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	mdss_default: mdss-default-state {
+		pins = "gpio25";
+		function = "gpio";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	mdss_sleep: mdss-sleep-state {
+		pins = "gpio25";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	sdc2_cd_default: sdc2-cd-default-state {
+		pins = "gpio38";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	usb_id_default: usb-id-default-state {
+		function = "gpio";
+		drive-strength = <8>;
+		bias-pull-up;
+	};
+};
