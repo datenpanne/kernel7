@@ -71,20 +71,6 @@
 		};
 	};
 
-	fuel-gauge {
-	compatible = "adc-battery";
-
-		/*io-channels = <&pm8916_vadc 0x6>, <&pm8916_vadc 0x30>;
-		io-channel-names = "voltage", "temperature";*/
-		
-		io-channels = <&pm8916_vadc 0x30>;
-		io-channel-names = "temperature";
-		
-		//charged-gpios = <&tlmm 62>;
-		monitored-battery = <&battery>;
-		power-supplies = <&charger>;
-	};
-
 	gpio-keys {
 		compatible = "gpio-keys";
 
@@ -522,5 +508,18 @@
 		function = "gpio";
 		drive-strength = <8>;
 		bias-pull-up;
+	};
+};
+
+/ {
+	fuel-gauge {
+	compatible = "adc-battery";
+
+		io-channels = <&pm8916_vadc 0x6>, <&pm8916_vadc 0x30>;
+		io-channel-names = "voltage", "temperature";
+		
+		//charged-gpios = <&tlmm 62>;
+		monitored-battery = <&battery>;
+		power-supplies = <&charger>;
 	};
 };
