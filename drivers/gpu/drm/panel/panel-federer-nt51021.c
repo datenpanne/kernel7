@@ -58,13 +58,13 @@ static int huawei_nt51021_on(struct huawei_nt51021 *ctx)
 
 	ctx->dsi->mode_flags |= MIPI_DSI_MODE_LPM;
 
-	/* Write Protect open
+	/* Write Protect open */
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
 	mipi_dsi_usleep_range(&dsi_ctx, 5000, 6000);
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x01, 0x00);
 	mipi_dsi_msleep(&dsi_ctx, 30);
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
-	mipi_dsi_usleep_range(&dsi_ctx, 1000, 2000);*/
+	mipi_dsi_usleep_range(&dsi_ctx, 1000, 2000);
 
 	/* Page 0 */
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x83, 0x00);
@@ -134,13 +134,15 @@ static int huawei_nt51021_off(struct huawei_nt51021 *ctx)
 {
 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
 
-	/*mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
-	mipi_dsi_usleep_range(&dsi_ctx, 5000, 6000);*/
+	ctx->dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
+
+	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
+	mipi_dsi_usleep_range(&dsi_ctx, 5000, 6000);
 	mipi_dsi_dcs_set_display_off_multi(&dsi_ctx);
 	msleep(80);
 	mipi_dsi_dcs_enter_sleep_mode_multi(&dsi_ctx);
 	msleep(120);
-	//mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0x00);
+	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0x00);
 
 	return dsi_ctx.accum_err;
 }
@@ -230,17 +232,19 @@ static int huawei_nt51021_set_brightness(struct mipi_dsi_device *dsi, u16 bright
 	tx_buf[0] = NT51021_REG_BKLT_PWM;
 	tx_buf[1] = val;
 
-	/* Zwinge Befehle in stabilen LPM Modus */
-	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+	/* Zwinge Befehle in stabilen LPM Modus
+	dsi->mode_flags |= MIPI_DSI_MODE_LPM; */
+
+	ctx->dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
 	//Write Protect öffnen & Page 0 sicherstellen
-/*	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
+	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
  
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x83, 0xBB); 
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x84, 0x22);
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x90, 0xc0);
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x95, 0xb1);
-	mipi_dsi_usleep_range(&dsi_ctx, 1000, 1500);   */
+	mipi_dsi_usleep_range(&dsi_ctx, 1000, 1500);
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x83, 0x00);
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x84, 0x00);
 
@@ -248,8 +252,10 @@ static int huawei_nt51021_set_brightness(struct mipi_dsi_device *dsi, u16 bright
 
 	mipi_dsi_dcs_write_buffer_multi(&dsi_ctx, tx_buf, sizeof(tx_buf));
 
-	/* Write Protect wieder schließen
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0x00); */
+	/* Write Protect wieder schließen */
+	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0x00);
+
+	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
 
 	return dsi_ctx.accum_err;
 }
