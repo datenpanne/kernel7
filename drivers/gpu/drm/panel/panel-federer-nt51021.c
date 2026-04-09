@@ -218,16 +218,17 @@ static const struct drm_panel_funcs huawei_nt51021_panel_funcs = {
 static int huawei_nt51021_set_brightness(struct mipi_dsi_device *dsi, u16 brightness)
 {
 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = dsi };
+
 	u8 val = (u8)brightness;
-	u16 temp_val;
+	//u16 temp_val;
 	u8 tx_buf[2];
 
-	/* Clamping & Offset gegen Überlauf und Dunkelwerden bei Max */
+	/* Clamping & Offset gegen Überlauf und Dunkelwerden bei Max
 	if (val = 0) {
 	temp_val = (u16)val + 7;
 	}
 
-	val = (temp_val > 255) ? 255 : (u8)temp_val;
+	val = (temp_val > 255) ? 255 : (u8)temp_val; */
 
 	tx_buf[0] = NT51021_REG_BKLT_PWM;
 	tx_buf[1] = val;
@@ -235,7 +236,7 @@ static int huawei_nt51021_set_brightness(struct mipi_dsi_device *dsi, u16 bright
 	/* Zwinge Befehle in stabilen LPM Modus
 	dsi->mode_flags |= MIPI_DSI_MODE_LPM; */
 
-	ctx->dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
+	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
 	//Write Protect öffnen & Page 0 sicherstellen
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
