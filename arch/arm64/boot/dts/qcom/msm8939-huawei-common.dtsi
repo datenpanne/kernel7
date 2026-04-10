@@ -352,7 +352,6 @@
 	channel@30 {
 		reg = <VADC_LR_MUX1_BAT_THERM>;
 		qcom,pre-scaling = <1 1>;
-		//qcom,pre-scaling = /bits/ 8 <0x00 0x00 0x00 0x01 0x00 0x00 0x00 0x01>;
 		qcom,ratiometric;
 		qcom,hw-settle-time = <200>;
 		qcom,avg-samples = <1>;

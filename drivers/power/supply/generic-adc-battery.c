@@ -96,7 +96,7 @@ static int gab_read_channel(struct gab *adc_bat, enum gab_chan_type channel,
 	else if (channel == GAB_VOLTAGE) {
 		*result *= 100;
 	} else if (channel == GAB_TEMP) {
-		*result /= 10;	
+		*result /= 100;	
 	} else {
 		*result *= 1000;
 	}
