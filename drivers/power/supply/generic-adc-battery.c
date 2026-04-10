@@ -93,8 +93,10 @@ static int gab_read_channel(struct gab *adc_bat, enum gab_chan_type channel,
 	if (ret < 0)
 		dev_err(&adc_bat->psy->dev, "read channel error: %d\n", ret);
 	/* HACK for MediaPad T2 */
-	if (channel == GAB_VOLTAGE || channel == GAB_TEMP) {
+	else if (channel == GAB_VOLTAGE) {
 		*result *= 100;
+	} else if (channel == GAB_TEMP) {
+		*result *= 0.1;	
 	} else {
 		*result *= 1000;
 	}

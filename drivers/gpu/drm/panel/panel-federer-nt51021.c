@@ -270,13 +270,14 @@ static int huawei_nt51021_bl_update_status(struct backlight_device *bl)
 
 	if (want_on && !ctx->bl_enabled) {
 		gpiod_set_value_cansleep(ctx->bl_gpio, 1);
-		msleep(120); 
+		msleep(20);
 		ctx->bl_enabled = true;
 	} 
 	else if (!want_on && ctx->bl_enabled) {
 		huawei_nt51021_set_brightness(dsi, 0);
 		msleep(20);
 		gpiod_set_value_cansleep(ctx->bl_gpio, 0);
+		msleep(100);
 		ctx->bl_enabled = false;
 	return 0;
 	}
