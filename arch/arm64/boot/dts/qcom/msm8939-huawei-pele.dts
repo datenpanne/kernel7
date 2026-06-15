@@ -32,67 +32,13 @@
 			<3000000 0>;
 	};
 
-	reg_lcd_bl_en: regulator-lcd-bl-en {
-		compatible = "regulator-fixed";
-		regulator-name = "lcd_bl_en";
-		vin-supply = <&reg_lcd_vled>;
-		gpios = <&tlmm 3 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-		startup-delay-us = <50000>;
-		pinctrl-names = "default", "sleep";
-		pinctrl-0 = <&lcd_bl_default>;
-		pinctrl-1 = <&lcd_bl_sleep>;
-	};
-
-	reg_lcd_vddio: regulator-lcd-vddio {
-		compatible = "regulator-fixed";
-		regulator-name = "lcd_vddio";
-
-		vin-supply = <&pm8916_l6>;
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
-		regulator-boot-on;
-		gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-		pinctrl-names = "default", "sleep";
-		pinctrl-0 = <&lcd_pwr_default>;
-		pinctrl-1 = <&lcd_pwr_sleep>;
-	};
-
-	reg_lcd_vled: regulator-lcd-vled {
-		compatible = "regulator-fixed";
-		regulator-name = "lcd_vled";
-		gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>; // vled-gpio97 (0x6d)
-		enable-active-high;
-		pinctrl-names = "default", "sleep";
-		pinctrl-0 = <&lcd_bl_default>;
-		pinctrl-1 = <&lcd_bl_sleep>;
-	};
-	
-	reg_lcd_vsp: regulator-lcd-vsp {
-
-		vin-supply = <&reg_lcd_vddio>;
-
-		off-on-delay-us = <20000>;
-		pinctrl-names = "default", "sleep";
-		pinctrl-0 = <&lcd_pwr_default>;
-		pinctrl-1 = <&lcd_pwr_sleep>;
-	};
-
-	reg_lcd_vsn: regulator-lcd-vsn {
-		off-on-delay-us = <20000>;
-		pinctrl-names = "default", "sleep";
-		pinctrl-0 = <&lcd_pwr_default>;
-		pinctrl-1 = <&lcd_pwr_sleep>;
-	};
-
 	reg_tp_vci: regulator-tp-vci {
 		compatible = "regulator-fixed";
 		regulator-name = "tp_vci";
 		vin-supply = <&pm8916_l17>;
 		//regulator-min-microvolt = <1800000>;
 		//regulator-max-microvolt = <1800000>;
-		gpios = <&tlmm 112 GPIO_ACTIVE_HIGH>;
+		gpio = <&tlmm 112 GPIO_ACTIVE_HIGH>;
 		regulator-boot-on;
 		enable-active-high;
 		regulator-always-on;
@@ -101,7 +47,7 @@
 	reg_tp_vddio: regulator-tp-vddio {
 		compatible = "regulator-fixed";
 		regulator-name = "tp_vddio";
-		gpios = <&tlmm 10 GPIO_ACTIVE_HIGH>;
+		gpio = <&tlmm 10 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		regulator-always-on;
 	};
@@ -120,7 +66,7 @@
 		vdd-supply = <&pm8916_l17>;
 		vddio-supply = <&pm8916_l6>;
 
-		mount-matrix = "-1", "0", "0",
+		mount-matrix = "0", "-1", "0",
 			       "0", "1", "0",
 			       "0", "0", "1";
 
@@ -161,24 +107,28 @@
 };
 
 &mdss_dsi0 {
-	pinctrl-0 = <&mdss_default &mdss_te_default>;
-	pinctrl-1 = <&mdss_sleep &mdss_te_default>;
-
 	panel@0 {
 		compatible = "huawei,pele-panel";
 
-		vddio-supply = <&reg_tp_vci>;
-		vcc-supply = <&reg_lcd_vddio>;
-		bl-supply = <&reg_lcd_bl_en>;
-		vled-supply = <&reg_lcd_vled>;
+		vddio-supply = <&pm8916_l6>;
+		vddio-incell-supply = <&pm8916_l16>;
+
+		reset-gpios = <&tlmm 25 GPIO_ACTIVE_HIGH>;
+
+		vcc-gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>;
+		vsp-gpios = <&tlmm 97 GPIO_ACTIVE_HIGH>;
+		vsn-gpios = <&tlmm 32 GPIO_ACTIVE_HIGH>;
+		vled-gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;
+		bl-gpios = <&tlmm 3 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-0 = <&panel_default &mdss_te_default>;
+		pinctrl-1 = <&panel_sleep &mdss_te_default>;
 	};
 };
-
 
 &mpss_mem {
 	reg = <0x0 0x86800000 0x0 0x5500000>;
 };
-
 
 &pm8916_codec {
 	qcom,micbias2-ext-cap;
@@ -215,40 +165,6 @@
 		pins = "gpio8", "gpio9", "gpio1";
 	};
 
-	/* Power Pins: VDDIO (2), VSP (97), VSN (32) */
-	lcd_pwr_default: lcd-pwr-default-state {
-		pins = "gpio2", "gpio97", "gpio32";
-		function = "gpio";
-
-		drive-strength = <8>;
-		bias-disable;
-	};
-
-	lcd_pwr_sleep: lcd-pwr-sleep-state {
-		pins = "gpio2", "gpio97", "gpio32";
-		function = "gpio";
-
-		drive-strength = <2>;
-		bias-pull-down;
-	};
-
-	/* Backlight Pins: BL_EN (3), VLED (109) */
-	lcd_bl_default: lcd-bl-default-state {
-		pins = "gpio3", "gpio109";
-		function = "gpio";
-
-		drive-strength = <8>;
-		bias-disable;
-	};
-
-	lcd_bl_sleep: lcd-bl-sleep-state {
-		pins = "gpio3", "gpio109";
-		function = "gpio";
-
-		drive-strength = <2>;
-		bias-pull-down;
-	};
-
 	mag_reset_default: mag-reset-default-state {
 		pins = "gpio36";
 		function = "gpio";
@@ -258,10 +174,17 @@
 
 	mdss_te_default: mdss-te-default-state {
 		pins = "gpio24";
-		//function = "gpio";
 		function = "mdp_vsync";
 		drive-strength = <2>;
 		bias-pull-down;
+	};
+
+	panel_default: panel-default-state {
+		pins = "gpio2", "gpio3", "gpio25", "gpio32", "gpio97", "gpio109";
+	};
+
+	panel_sleep: panel-sleep-state {
+		pins = "gpio2", "gpio3", "gpio25", "gpio32", "gpio97", "gpio109";
 	};
 
 	prox_irq_default: prox-irq-default-state {

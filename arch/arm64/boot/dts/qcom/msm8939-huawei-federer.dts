@@ -66,7 +66,7 @@
 	speaker_boost: regulator-speaker-boost {
 		compatible = "regulator-fixed";
 		regulator-name = "speaker_boost";
-		gpios = <&tlmm 2 GPIO_ACTIVE_HIGH>; // Boost GPIO
+		gpio = <&tlmm 2 GPIO_ACTIVE_HIGH>; // Boost GPIO
 		enable-active-high;
 		
 		pinctrl-names = "default", "sleep";
@@ -77,7 +77,7 @@
 	speaker_vdd: regulator-speaker-vdd {
 		compatible = "regulator-fixed";
 		regulator-name = "speaker_vdd";
-		gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>; // VDD Switch
+		gpio = <&tlmm 0 GPIO_ACTIVE_HIGH>; // VDD Switch
 		enable-active-high;
 		regulator-always-on;
 		/*pinctrl-0 = <&speaker_vdd_default>;
@@ -106,41 +106,10 @@
 		vin-supply = <&pm8916_l17>;
 		regulator-min-microvolt = <1850000>;
 		regulator-max-microvolt = <1850000>;
-		gpios = <&tlmm 112 GPIO_ACTIVE_HIGH>;
+		gpio = <&tlmm 112 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		regulator-always-on;
 	};
-
-	/*reg_lcd_vddio: regulator-lcd-vddio {
-		compatible = "regulator-fixed";
-		regulator-name = "lcd_vddio";
-
-		vin-supply = <&pm8916_l6>;
-		regulator-min-microvolt = <1800000>;
-		regulator-max-microvolt = <1800000>;
-		regulator-boot-on;
-		gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-		startup-delay-us = <100000>;
-
-		pinctrl-0 = <&lcd_vddio_default>;
-		pinctrl-names = "default";
-	};*/
-	
-	reg_lcd_vsp: regulator-lcd-vsp {
-
-		vin-supply = <&pm8916_l6>;
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&lcd_vsp_vsn_default>;
-	};
-
-	reg_lcd_vsn: regulator-lcd-vsn {
-
-		pinctrl-names = "default";
-		pinctrl-0 = <&lcd_vsp_vsn_default>;
-	};
-
 
 	usb_id: usb-id {
 		id-gpios = <&tlmm 117 GPIO_ACTIVE_HIGH>;
@@ -194,15 +163,19 @@
 };
 
 &mdss_dsi0 {
-	pinctrl-0 = <&mdss_default>;
-	pinctrl-1 = <&mdss_sleep>;
-
 	panel@0 {
 		compatible = "huawei,federer-panel";
 
 		vddio-supply = <&pm8916_l6>;
 
-		backlight-gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
+
+		backlight-gpios = <&tlmm 07 GPIO_ACTIVE_HIGH>;
+		power-blk-gpios = <&tlmm 109 GPIO_ACTIVE_HIGH>;
+		power-panel-gpios = <&tlmm 32 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-0 = <&panel_default>;
+		pinctrl-1 = <&panel_sleep>;
 	};
 };
 
@@ -290,36 +263,13 @@
 		bias-pull-down;
 	};*/
 
-	lcd_vsp_vsn_default: lcd-vsp-vsn-default-state {
-		pins = "gpio32","gpio97";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-pull-down;
-	};
-/*
-	lcd_vddio_default: lcd-vddio-default-state {
-		pins = "gpio32";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-pull-up;
-		output-high;
-	};*/
-
-/*	mdss_te_default: mdss-te-default-state {
-		pins = "gpio24";
-		function = "gpio";
-		//function = "mdp_vsync";
-		drive-strength = <2>;
-		bias-pull-disable;
+	panel_default: panel-default-state {
+		pins = "gpio25","gpio32","gpio97", "gpio109";
 	};
 
-	mdss_te_sleep: mdss-te-sleep-state {
-		pins = "gpio24";
-		function = "gpio";
-		//function = "mdp_vsync";
-		drive-strength = <2>;
-		bias-pull-down;
-	};*/
+	panel_sleep: panel-sleep-state {
+		pins = "gpio25","gpio32","gpio97", "gpio109";
+	};
 
 	/* GPIO 3 - Speaker Enable */
 	speaker_amp_default: speaker-amp-default {

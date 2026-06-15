@@ -110,39 +110,13 @@
 			retain-state-suspended;
 		};
 	};
-	
-	reg_lcd_vsp: regulator-lcd-vsp {
-		compatible = "regulator-fixed";
-		regulator-name = "lcd_vsp";
-
-		//vin-supply = <&reg_lcd_vddio>;
-		regulator-min-microvolt = <5400000>;
-		regulator-max-microvolt = <5400000>;
-		regulator-boot-on;
-		startup-delay-us = <10000>;
-		gpios = <&tlmm 97 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-	};
-
-	reg_lcd_vsn: regulator-lcd-vsn {
-		compatible = "regulator-fixed";
-		regulator-name = "lcd_vsn";
-
-		//vin-supply = <&reg_lcd_vsp>;		
-		regulator-min-microvolt = <5400000>;
-		regulator-max-microvolt = <5400000>;
-		regulator-boot-on;
-		startup-delay-us = <10000>;
-		gpios = <&tlmm 32 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-	};
 
 	otg_path: otg_path {
 		compatible = "regulator-fixed";
 		regulator-name = "otg-path";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		gpios = <&tlmm 108 GPIO_ACTIVE_HIGH>;
+		gpio = <&tlmm 108 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		pinctrl-names = "default";
 		pinctrl-0 = <&bq24296_charger_en_default>;
@@ -220,16 +194,12 @@
 };
 
 &mdss_dsi0 {
-	pinctrl-names = "default", "sleep";
 	status = "okay";
 
 	panel@0 {
 		reg = <0>;
 
-		reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
-
-		vsp-supply = <&reg_lcd_vsp>;
-		vsn-supply = <&reg_lcd_vsn>;
+		pinctrl-names = "default", "sleep";
 
 		port {
 			panel_in: endpoint {
@@ -479,15 +449,13 @@
 		bias-disable;
 	};
 
-	mdss_default: mdss-default-state {
-		pins = "gpio25";
+	panel_default: panel-default-state {
 		function = "gpio";
-		drive-strength = <8>;
+		drive-strength = <10>;
 		bias-disable;
 	};
 
-	mdss_sleep: mdss-sleep-state {
-		pins = "gpio25";
+	panel_sleep: panel-sleep-state {
 		function = "gpio";
 		drive-strength = <2>;
 		bias-pull-down;

@@ -22,16 +22,14 @@ struct huawei_nt51021 {
 	struct mipi_dsi_device *dsi;
 	struct regulator_bulk_data *supplies;
 	struct gpio_desc *reset_gpio;
-	struct gpio_desc *bl_gpio;
-	//struct gpio_desc *vcc_gpio;
-	//struct gpio_desc *blpwr_gpio;
+	struct gpio_desc *bl_gpio;            /* huawei,platform-enable-vled (GPIO 97) */
+	struct gpio_desc *power_blk_gpio;     /* huawei,platform-power-blk (GPIO 109) */
+	struct gpio_desc *power_panel_gpio;   /* huawei,platform-power-panel (GPIO 32) */
 	bool bl_enabled;
 };
 
 static const struct regulator_bulk_data huawei_nt51021_supplies[] = {
 	{ .supply = "vddio" },
-	{ .supply = "vsp" },
-	{ .supply = "vsn" },
 };
 
 #define NT51021_REG_BKLT_PWM 0x9f
@@ -58,71 +56,63 @@ static int huawei_nt51021_on(struct huawei_nt51021 *ctx)
 
 	ctx->dsi->mode_flags |= MIPI_DSI_MODE_LPM;
 
-	/* Write Protect open */
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
+	/* 1. Optional Huawei Write-Protect Block (just in case) */
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
 	mipi_dsi_usleep_range(&dsi_ctx, 5000, 6000);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x01, 0x00);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x01, 0x00);
 	mipi_dsi_msleep(&dsi_ctx, 30);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
 	mipi_dsi_usleep_range(&dsi_ctx, 1000, 2000);
 
-	/* Page 0 */
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x83, 0x00);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x84, 0x00);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8c, 0x80);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xcd, 0x6c);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xc8, 0xfc);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, NT51021_REG_BKLT_PWM, 0x00);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x97, 0x00);
+	/* 2. Page 0 Initialisierung */
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x83, 0x00);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x84, 0x00);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x8c, 0x80);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xcd, 0x6c);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xc8, 0xfc);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, NT51021_REG_BKLT_PWM, 0x00); /* 0x9f */
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x97, 0x00);
 
-	/* Magic Page Switch & Settings */
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x83, 0xbb);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x84, 0x22);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x96, 0x00);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x91, 0xa0);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x9a, 0x10);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x94, 0x78);
+	/* Page-Switch & Settings */
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x83, 0xbb);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x84, 0x22);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x96, 0x00);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x90, 0xc0);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x91, 0xa0);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x9a, 0x10);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x94, 0x78);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x95, 0xb1);
 
 	/* Gamma / Color */
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xa1, 0xff);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xa2, 0xfa);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xa3, 0xf3);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xa4, 0xed);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xa5, 0xe7);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xa6, 0xe2);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xa7, 0xdc);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xa8, 0xd7);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xa9, 0xd1);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xaa, 0xcc);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb4, 0x1c);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb5, 0x38);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xb6, 0x30);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xa1, 0xff);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xa2, 0xfa);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xa3, 0xf3);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xa4, 0xed);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xa5, 0xe7);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xa6, 0xe2);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xa7, 0xdc);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xa8, 0xd7);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xa9, 0xd1);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xaa, 0xcc);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb4, 0x1c);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb5, 0x38);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xb6, 0x30);
 
-	/* Final Page Switch */
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x83, 0xaa);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x84, 0x11);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xa9, 0x4b);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x85, 0x04);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x86, 0x08);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x9c, 0x10);
+	/* Page-Switch & Display Tuning */
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x83, 0xaa);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x84, 0x11);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xa9, 0x4b);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x85, 0x04);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x86, 0x08);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x9c, 0x10);
 
-	/* PWM-Frequenz (Page BB/22) */
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x83, 0xBB); 
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x84, 0x22);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x90, 0xc0);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x95, 0x11);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x94, 0x58); 
-
-	/* Zurück zu Page 0*/
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x83, 0x00);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x84, 0x00);
+	/* Page 0 */
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x83, 0x00);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x84, 0x00);
 	mipi_dsi_usleep_range(&dsi_ctx, 1000, 2000);
 
-	/* Display aktivieren */
 	mipi_dsi_dcs_exit_sleep_mode_multi(&dsi_ctx);
 	mipi_dsi_msleep(&dsi_ctx, 120);
-	mipi_dsi_dcs_set_display_on_multi(&dsi_ctx);
-	mipi_dsi_msleep(&dsi_ctx, 20);
 
 	/* Write Protect close
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0x00); */
@@ -138,8 +128,8 @@ static int huawei_nt51021_off(struct huawei_nt51021 *ctx)
 
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
 	mipi_dsi_usleep_range(&dsi_ctx, 5000, 6000);
-	mipi_dsi_dcs_set_display_off_multi(&dsi_ctx);
-	msleep(80);
+	/*mipi_dsi_dcs_set_display_off_multi(&dsi_ctx);
+	msleep(80);*/
 	mipi_dsi_dcs_enter_sleep_mode_multi(&dsi_ctx);
 	msleep(120);
 	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0x00);
@@ -155,9 +145,16 @@ static int huawei_nt51021_prepare(struct drm_panel *panel)
 
 	ret = regulator_bulk_enable(ARRAY_SIZE(huawei_nt51021_supplies), ctx->supplies);
 	if (ret < 0) {
-		dev_err(dev, "Failed to enable regulators: %d\n", ret);
+		dev_err(dev, "Failed to enable vddio-regulator: %d\n", ret);
 		return ret;
 	}
+	usleep_range(1000, 2000);
+
+	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+
+	gpiod_set_value_cansleep(ctx->power_blk_gpio, 1);   /* disp_power_backlight */
+	gpiod_set_value_cansleep(ctx->power_panel_gpio, 1); /* disp_power_panel */
+	msleep(500);
 
 	huawei_nt51021_reset(ctx);
 
@@ -165,11 +162,40 @@ static int huawei_nt51021_prepare(struct drm_panel *panel)
 	if (ret < 0) {
 		dev_err(dev, "Failed to initialize panel: %d\n", ret);
 		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+		gpiod_set_value_cansleep(ctx->power_blk_gpio, 0);
+		gpiod_set_value_cansleep(ctx->power_panel_gpio, 0);
 		regulator_bulk_disable(ARRAY_SIZE(huawei_nt51021_supplies), ctx->supplies);
-	return ret;
+		return ret;
 	}
 
 	return 0;
+}
+
+static int huawei_nt51021_enable(struct drm_panel *panel)
+{
+	struct huawei_nt51021 *ctx = to_huawei_nt51021(panel);
+	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
+
+	ctx->dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
+
+	mipi_dsi_dcs_set_display_on_multi(&dsi_ctx);
+	mipi_dsi_msleep(&dsi_ctx, 20);
+	
+	return dsi_ctx.accum_err;
+}
+
+static int huawei_nt51021_disable(struct drm_panel *panel)
+{
+	struct huawei_nt51021 *ctx = to_huawei_nt51021(panel);
+	struct mipi_dsi_multi_context dsi_ctx = { .dsi = ctx->dsi };
+
+	ctx->dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
+
+	mipi_dsi_usleep_range(&dsi_ctx, 5000, 6000);
+	mipi_dsi_dcs_set_display_off_multi(&dsi_ctx);
+	msleep(80);
+
+	return dsi_ctx.accum_err;
 }
 
 static int huawei_nt51021_unprepare(struct drm_panel *panel)
@@ -181,8 +207,12 @@ static int huawei_nt51021_unprepare(struct drm_panel *panel)
 	ret = huawei_nt51021_off(ctx);
 	if (ret < 0)
 	dev_err(dev, "Failed to un-initialize panel: %d\n", ret);
+	msleep(100);
 
 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+	gpiod_set_value_cansleep(ctx->power_blk_gpio, 0);
+	gpiod_set_value_cansleep(ctx->power_panel_gpio, 0);
+
 	regulator_bulk_disable(ARRAY_SIZE(huawei_nt51021_supplies), ctx->supplies);
 
 	return 0;
@@ -211,6 +241,8 @@ static int huawei_nt51021_get_modes(struct drm_panel *panel,
 
 static const struct drm_panel_funcs huawei_nt51021_panel_funcs = {
 	.prepare = huawei_nt51021_prepare,
+	.enable = huawei_nt51021_enable,
+	.disable = huawei_nt51021_disable,
 	.unprepare = huawei_nt51021_unprepare,
 	.get_modes = huawei_nt51021_get_modes,
 };
@@ -218,45 +250,26 @@ static const struct drm_panel_funcs huawei_nt51021_panel_funcs = {
 static int huawei_nt51021_set_brightness(struct mipi_dsi_device *dsi, u16 brightness)
 {
 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = dsi };
-
 	u8 val = (u8)brightness;
-	//u16 temp_val;
-	u8 tx_buf[2];
-
-	/* Clamping & Offset gegen Überlauf und Dunkelwerden bei Max
-	if (val = 0) {
-	temp_val = (u16)val + 7;
-	}
-
-	val = (temp_val > 255) ? 255 : (u8)temp_val; */
-
-	tx_buf[0] = NT51021_REG_BKLT_PWM;
-	tx_buf[1] = val;
-
-	/* Zwinge Befehle in stabilen LPM Modus
-	dsi->mode_flags |= MIPI_DSI_MODE_LPM; */
 
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
-	//Write Protect öffnen & Page 0 sicherstellen
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
- 
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x83, 0xBB); 
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x84, 0x22);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x90, 0xc0);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x95, 0xb1);
-	mipi_dsi_usleep_range(&dsi_ctx, 1000, 1500);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x83, 0x00);
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x84, 0x00);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x8f, 0xa5);
 
-	mipi_dsi_usleep_range(&dsi_ctx, 1000, 1500);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x83, 0x00); /* chang_page0_index0 */
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x84, 0x00); /* chang_page0_index1 */
 
-	mipi_dsi_dcs_write_buffer_multi(&dsi_ctx, tx_buf, sizeof(tx_buf));
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, NT51021_REG_BKLT_PWM, val);
 
-	/* Write Protect wieder schließen */
-	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x8f, 0x00);
+	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x8f, 0x00);
 
-	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
+	/* 
+	 * HINWEIS zur Modus-Rückstellung:
+	 * Im Mainline-Framework für MSM-SoCs (Qualcomm) belässt man nach der 
+	 * Helligkeitsänderung das Flag im HS-Modus, da das eigentliche Video-Streaming 
+	 * ebenfalls im HS-Modus läuft. Ein hartes Erzwingen von LPM an dieser Stelle 
+	 * kann den Video-Stream zerstören.
+	 */
 
 	return dsi_ctx.accum_err;
 }
@@ -269,17 +282,18 @@ static int huawei_nt51021_bl_update_status(struct backlight_device *bl)
 	bool want_on = !!brightness;
 
 	if (want_on && !ctx->bl_enabled) {
-		gpiod_set_value_cansleep(ctx->bl_gpio, 1);
+		msleep(20);
+		gpiod_set_value_cansleep(ctx->bl_gpio, 1); /* hw_panel_bias_en(1) */
 		msleep(20);
 		ctx->bl_enabled = true;
 	} 
 	else if (!want_on && ctx->bl_enabled) {
 		huawei_nt51021_set_brightness(dsi, 0);
 		msleep(20);
-		gpiod_set_value_cansleep(ctx->bl_gpio, 0);
+		gpiod_set_value_cansleep(ctx->bl_gpio, 0); /* hw_panel_bias_en(0) */
 		msleep(100);
 		ctx->bl_enabled = false;
-	return 0;
+		return 0;
 	}
 
 	return huawei_nt51021_set_brightness(dsi, brightness);
@@ -327,6 +341,14 @@ static int huawei_nt51021_probe(struct mipi_dsi_device *dsi)
 	ctx->bl_gpio = devm_gpiod_get(dev, "backlight", GPIOD_OUT_LOW);
 	if (IS_ERR(ctx->bl_gpio))
 		return dev_err_probe(dev, PTR_ERR(ctx->bl_gpio), "Failed to get backlight-gpios\n");
+
+	ctx->power_blk_gpio = devm_gpiod_get(dev, "power-blk", GPIOD_OUT_LOW);
+	if (IS_ERR(ctx->power_blk_gpio))
+		return dev_err_probe(dev, PTR_ERR(ctx->power_blk_gpio), "Failed to get power-blk-gpio\n");
+
+	ctx->power_panel_gpio = devm_gpiod_get(dev, "power-panel", GPIOD_OUT_LOW);
+	if (IS_ERR(ctx->power_panel_gpio))
+		return dev_err_probe(dev, PTR_ERR(ctx->power_panel_gpio), "Failed to get power-panel-gpio\n");
 
 	ctx->dsi = dsi;
 	mipi_dsi_set_drvdata(dsi, ctx);
