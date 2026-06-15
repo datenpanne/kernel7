@@ -251,6 +251,7 @@ static int huawei_nt51021_set_brightness(struct mipi_dsi_device *dsi, u16 bright
 {
 	struct mipi_dsi_multi_context dsi_ctx = { .dsi = dsi };
 	u8 val = (u8)brightness;
+	u8 tx_buf[2] = { NT51021_REG_BKLT_PWM, val };
 
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
@@ -259,7 +260,7 @@ static int huawei_nt51021_set_brightness(struct mipi_dsi_device *dsi, u16 bright
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x83, 0x00); /* chang_page0_index0 */
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x84, 0x00); /* chang_page0_index1 */
 
-	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, NT51021_REG_BKLT_PWM, val);
+	mipi_dsi_dcs_write_buffer_multi(&dsi_ctx, tx_buf, sizeof(tx_buf));
 
 	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x8f, 0x00);
 

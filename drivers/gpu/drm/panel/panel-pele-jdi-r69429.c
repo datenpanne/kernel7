@@ -21,13 +21,17 @@ struct pele_jdi_r69429 {
 	struct drm_panel panel;
 	struct mipi_dsi_device *dsi;
 	struct regulator_bulk_data *supplies;
-	struct regulator_bulk_data supplies[2]; /* vddio und vddio-incell */
 	struct gpio_desc *reset_gpio;           /* GPIO 25 */
 	struct gpio_desc *vcc_gpio;             /* GPIO 2  */
 	struct gpio_desc *vsp_gpio;             /* GPIO 97 */
 	struct gpio_desc *vsn_gpio;             /* GPIO 32 */
 	struct gpio_desc *vled_gpio;            /* GPIO 109 */
 	struct gpio_desc *bl_gpio;              /* GPIO 3  */
+};
+
+static const struct regulator_bulk_data pele_jdi_r69429_supplies[] = {
+	{ .supply = "vddio" },
+	{ .supply = "vddio-incell" },
 };
 
 static inline
@@ -108,11 +112,12 @@ static int pele_jdi_r69429_prepare(struct drm_panel *panel)
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
 
-	ret = regulator_bulk_enable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
+	ret = regulator_bulk_enable(ARRAY_SIZE(pele_jdi_r69429_supplies), ctx->supplies);
 	if (ret < 0) {
-		dev_err(dev, "Failed to enable LDO supplies: %d\n", ret);
+		dev_err(dev, "Failed to enable vddio/vddio-incell-regulators: %d\n", ret);
 		return ret;
 	}
+	usleep_range(1000, 2000);
 
 	gpiod_set_value_cansleep(ctx->vcc_gpio, 1);
 	msleep(10);
@@ -163,7 +168,7 @@ static int pele_jdi_r69429_unprepare(struct drm_panel *panel)
 	gpiod_set_value_cansleep(ctx->vsp_gpio, 0);
 	gpiod_set_value_cansleep(ctx->vcc_gpio, 0);
 
-	regulator_bulk_disable(ARRAY_SIZE(ctx->supplies), ctx->supplies);
+	regulator_bulk_disable(ARRAY_SIZE(pele_jdi_r69429_supplies), ctx->supplies);
 	msleep(100);
 
 	return 0;
@@ -261,11 +266,12 @@ static int pele_jdi_r69429_probe(struct mipi_dsi_device *dsi)
 	if (!ctx)
 		return -ENOMEM;
 
-	ctx->supplies[0].supply = "vddio";
-	ctx->supplies[1].supply = "vddio-incell";
-	ret = devm_regulator_bulk_get(dev, ARRAY_SIZE(ctx->supplies), ctx->supplies);
+	ret = devm_regulator_bulk_get_const(dev,
+					    ARRAY_SIZE(pele_jdi_r69429_supplies),
+					    pele_jdi_r69429_supplies,
+					    &ctx->supplies);
 	if (ret < 0)
-		return dev_err_probe(dev, ret, "Failed to get regulators\n");
+		return ret;
 
 	ctx->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_LOW);
 	if (IS_ERR(ctx->reset_gpio))
